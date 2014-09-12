@@ -33,10 +33,10 @@ class Query extends \Lx\Object {
 	}
 	
 	function select($tables, $distinct = false) {
-		$ts = array();
 		foreach ($tables as $table => $cols) {
-			$stmt = "SELECT DISTINCT " . "`$table`.". implode($cols, ", `$table`.");
-			($distinct) ? $this->stmts['select distinct'][] = $stmt : $this->stmts['select'][] = $stmt;			
+			($distinct) ? $type = "select distinct" : $type = 'select';
+			$stmt = strToUpper($type) ." `$table`.". implode($cols, ", `$table`.");
+			$this->appendStmt($type, $stmt);
 		}
 		return $this;
 	}
@@ -52,9 +52,13 @@ class Query extends \Lx\Object {
 		return $this->appendStmt('join', $sql, $params);
 	}
 	
-	function where($where, $params = null) {
+	function where($sql, $params = null) {
+		isset($this->stmts['where']) ? $sql = "AND $sql" : $sql = "WHERE $sql";
 		return $this->appendStmt('where', $sql, $params);
 	}
+	
+	function andWhere($sql, $params = null) { return $this->appendStmt('where', "AND $sql", $params); }
+	function orWhere ($sql, $params = null) { return $this->appendStmt('where', "OR $sql", $params); }
 	
 	function render() {
 		$sql = array();

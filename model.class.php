@@ -6,10 +6,19 @@ class Model extends Base {
 	static protected $primaryKey = null;
 	static protected $tableName = null;
 	static protected $columns = ["*"]; // override this for speed performance
+	static protected $hasMany = [];
+	static protected $belongsTo = null;
+	static protected $hasOne = [];
 	
 	static function tableName() {
 		if (static::$tableName) return static::$tableName;
-		return strtolower(get_called_class()) . "s";
+		return strtolower( get_called_class() ) . "s";
+	}
+	
+	protected static function baseQuery() {
+		$tname = static::tableName();
+		$query = new Query($tname);
+		return $query->select([$tname => static::$columns]);
 	}
 	
 	static function all() {
@@ -23,20 +32,18 @@ class Model extends Base {
 	}
 	
 	static function find($id) {
-		$query = new Query(static::tableName());
-		$query->select([static::tableName() => static::$columns])->where("id = ?", [$id]);
+		$query = static::baseQuery()->where("id = ?", [$id]);
 		$result = static::query($query, $query->params);
 		if (count($result) > 0)
 			return new static(current($result));
-		return
-			null;
+			
+		return null;
 	}
 	
 	static function findByName($array) {
-		$query = new Query(static::tableName());
-		$query->select([static::tableName() => static::$columns]);
-		foreach ($array as $col => $val) $query->where("$col = ?", [$val]);
-		echo $query;
+		$query = static::baseQuery();
+		foreach ($array as $col => $val)
+			$query->where("`".static::tableName()."`.$col = ?", [$val]);
 		$result = static::query($query, $query->params);
 		foreach ($result as &$obj) $obj = new static($obj);
 		return $result;

@@ -68,7 +68,8 @@ class Base extends \Lx\Object{
 			call_user_func_array(array($stmt, "bind_result"), $temp_result);
 			while($stmt->fetch()) {
 				$row = array();
-				foreach ($result as $key => $value) $row[$key] = $value; // to avoid copying the pointers
+				// to avoid copying the pointers and getting the last result for all rows
+				foreach ($result as $key => $value) $row[$key] = $value;
 				$return[] = $row;
 			}
 		}
