@@ -22,12 +22,9 @@ class Model extends Base {
 	}
 	
 	static function all() {
-		$query = new Query(static::tableName());
-		$query->select([static::tableName() => static::$columns]);
-		$rows = static::query($query);
-		$result = array();
-		foreach ($rows as $row) $result[] = new static($row);
-		// echo "$query\n";
+		$query = static::baseQuery();
+		$result = static::query($query);
+		foreach ($result as &$row) $row = new static($row);
 		return $result;
 	}
 	
@@ -52,6 +49,17 @@ class Model extends Base {
 	// ======================
 	// = end static methods =
 	// ======================
+	
+	function properties() {
+		$reflect = new \ReflectionClass($this);
+		$props   = $reflect->getProperties();
+		foreach ($props as $prop) {
+			// find out how to itterate over runtime defined properties
+			$prop = $prop->getName();
+			echo $prop."\n";
+			// yield $this->$prop;
+		}
+	}
 	
 	protected $query = null;
 	
