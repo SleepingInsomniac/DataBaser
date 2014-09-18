@@ -3,12 +3,20 @@ namespace Dbaser;
 
 class Model extends Base {
 	
-	static protected $primaryKey = null;
+	static protected $primaryKey = 'id';
 	static protected $tableName = null;
 	static protected $columns = ["*"]; // override this for speed performance
 	static protected $hasMany = [];
 	static protected $belongsTo = null;
 	static protected $hasOne = [];
+	
+	static function passiveProperties() {
+		return [
+			static::$primaryKey,
+			'created_at',
+			'updated_at'
+		];
+	}
 	
 	static function tableName() {
 		if (static::$tableName) return static::$tableName;
@@ -52,31 +60,37 @@ class Model extends Base {
 	
 	function properties() {
 		$reflect = new \ReflectionClass($this);
-		$props   = $reflect->getProperties();
+		$props   = $reflect->getProperties(\ReflectionProperty::IS_PUBLIC | \ReflectionProperty::IS_PROTECTED);
 		foreach ($props as $prop) {
-			// find out how to itterate over runtime defined properties
+			if ($prop->isStatic()) continue;
 			$prop = $prop->getName();
 			echo $prop."\n";
-			// yield $this->$prop;
 		}
 	}
-	
-	protected $query = null;
-	
+		
 	function __construct($vars = array()) {
 		foreach ($vars as $property => $value) {
 			$this->$property = $value;
 		}
 	}
-	
-	function getQuery() {
-		return $this->query;
+		
+	function save() {
+		if (!isset($this->{static::$primaryKey})) return $this->insert();
+		$tname = static::tableName();
+		$query = new Query($tname);
+		$properties = [];
+		foreach ($this as $prop => $value) {
+			if (!in_array($prop, static::passiveProperties())) $properties[$prop] = $value;
+		} 
+		$query->update($tname, $properties)->where(static::$primaryKey.' = ?', [$this->{static::$primaryKey}])->limit(1);
+		$result = static::query($query, $query->params);
+		echo $query;
+		var_dump($result);
+		return $result;
 	}
 	
-	function save() {
-		if ($this->query) {
-			
-		}
+	function insert() {
+		// todo: implement
 	}
 	
 }

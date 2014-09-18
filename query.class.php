@@ -33,11 +33,23 @@ class Query extends \Lx\Object {
 	}
 	
 	function select($tables, $distinct = false) {
+		($distinct) ? $type = "select distinct" : $type = 'select';
 		foreach ($tables as $table => $cols) {
-			($distinct) ? $type = "select distinct" : $type = 'select';
 			$stmt = strToUpper($type) ." `$table`.". implode($cols, ", `$table`.");
 			$this->appendStmt($type, $stmt);
 		}
+		return $this;
+	}
+	
+	function update($table, $vars) {
+		$this->appendStmt('update', "UPDATE `$table` SET");
+		$updates = [];
+		$vals = [];
+		foreach ($vars as $key => $value) {
+			$updates[] = "\t`$key` = ?";
+			$vals[] = $value;
+		}
+		$this->appendStmt('update', implode($updates, ",\n"), $vals);
 		return $this;
 	}
 	
@@ -56,9 +68,13 @@ class Query extends \Lx\Object {
 		isset($this->stmts['where']) ? $sql = "AND $sql" : $sql = "WHERE $sql";
 		return $this->appendStmt('where', $sql, $params);
 	}
-	
+		
 	function andWhere($sql, $params = null) { return $this->appendStmt('where', "AND $sql", $params); }
 	function orWhere ($sql, $params = null) { return $this->appendStmt('where', "OR $sql", $params); }
+	
+	function limit($count) {
+		$this->appendStmt('limit', "LIMIT ?", [$count]);
+	}
 	
 	function render() {
 		$sql = array();
@@ -72,7 +88,6 @@ class Query extends \Lx\Object {
 					$sql[] = implode($stmts, "\n");
 					break;
 			}
-			// $sql[] = implode($stmts, "\n");
 		}
 		return implode($sql, "\n").";";
 	}

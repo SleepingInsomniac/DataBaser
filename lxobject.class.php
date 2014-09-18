@@ -22,10 +22,7 @@ class Object {
 		if ($action == 'get') return $this->$property;
 		if ($action == 'set') $this->$property = $value;
 	}
-	
-	protected
-		$className;
-	
+		
 	function getClassName() {
 		return get_class($this);
 	}
