@@ -84,8 +84,8 @@ class Model extends Base {
 		} 
 		$query->update($tname, $properties)->where(static::$primaryKey.' = ?', [$this->{static::$primaryKey}])->limit(1);
 		$result = static::query($query, $query->params);
-		echo $query;
-		var_dump($result);
+		// echo $query;
+		// var_dump($result);
 		return $result;
 	}
 	
