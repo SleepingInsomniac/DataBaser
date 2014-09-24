@@ -53,7 +53,14 @@ class Model extends Base {
 		foreach ($result as &$obj) $obj = new static($obj);
 		return $result;
 	}
-		
+	
+	static function random() {
+		$query = static::baseQuery()->orderBy("RAND()")->limit(1);
+		$result = static::query($query, $query->params);
+		if (count($result) > 0)
+			return new static(current($result));		
+	}
+	
 	// ======================
 	// = end static methods =
 	// ======================

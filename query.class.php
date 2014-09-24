@@ -74,6 +74,17 @@ class Query extends \Lx\Object {
 	
 	function limit($count) {
 		$this->appendStmt('limit', "LIMIT ?", [$count]);
+		return $this;
+	}
+	
+	function orderBy($column, $direction = "") {
+				
+		if (isset($this->stmts['orderBy']) == 0)
+			$column = "ORDER BY $column";
+		
+		$this->appendStmt('orderBy', "$column $direction");
+
+		return $this;
 	}
 	
 	function render() {
