@@ -4,11 +4,14 @@ namespace Dbaser;
 class Base extends \Lx\Object{
 	protected static $connection;
 	
-	static function setConnection($value) {
-		if (!($value instanceof \Mysqli))
+	// ==================================================
+	// = Use this function to set the mysqli connection =
+	// ==================================================
+	static function setConnection($mysqli) {
+		if (!($mysqli instanceof \Mysqli))
 			throw new \Exception("Connection must be instance of Mysqli");
 		if (!static::$connection)
-			static::$connection = $value;
+			static::$connection = $mysqli;
 	}
 	
 	// ==================================================
@@ -29,11 +32,24 @@ class Base extends \Lx\Object{
 		return $types;
 	}
 	
+	// ================================
+	// = The rule for joining tables: =
+	// ================================
+	// returns the correct order of tables joined by alphabetic order.
+	protected static function tableJoin($t1, $t2) {
+		if (strcmp($t1, $t2) < 0)
+			$j = "{$t1}_{$t2}";
+		else
+			$j = "{$t2}_{$t1}";
+		
+		return $j;
+	}
+	
 	// ==============================================================
 	// = This function talks to the mysqli object and gets the data =
 	// ==============================================================
 	// static function queryRaw() { return call_user_func_array([get_called_class(), 'query'], func_get_args()); }
-	protected static function query($sql, $params = null, $datatypes = null) {
+	protected static function query($sql, $params = null, $rowCallback = null, $datatypes = null) {
 		// if datatypes aren't provided, figure them out.
 		if ($params && !$datatypes) $datatypes = static::dataTypes($params);
 		
@@ -70,6 +86,7 @@ class Base extends \Lx\Object{
 				$row = array();
 				// to avoid copying the pointers and getting the last result for all rows
 				foreach ($result as $key => $value) $row[$key] = $value;
+				if ($rowCallback) $row = $rowCallback($row); // the function to modify the row.
 				$return[] = $row;
 			}
 		}

@@ -9,9 +9,7 @@ class Model extends Base {
 	static protected $hasMany = [];
 	static protected $belongsTo = null;
 	static protected $hasOne = [];
-	
-	private $isNew = true;
-	
+		
 	static function passiveProperties() {
 		return [
 			static::$primaryKey,
@@ -32,18 +30,41 @@ class Model extends Base {
 		return $query->select([$tname => static::$columns]);
 	}
 	
+	// =======================
+	// = Create a new record =
+	// =======================
+	static function create($params = array()) {
+		$obj = new static($params);
+		$obj->save();
+		return $obj;
+	}
+	
+	// ===============================
+	// = Delete record from database =
+	// ===============================
+	static function delete($id) {		
+		$tname = static::tableName();
+		$query = new Query($tname);
+		$pk = static::$primaryKey;
+		$query->delete($tname)->where("`$tname`.`$pk` = ?", [$id]);
+		static::query($query, $query->params);
+	}
+	
+	// ======================
+	// = Return all records =
+	// ======================
 	static function all() {
 		$query = static::baseQuery();
-		$result = static::query($query);
-		foreach ($result as &$row) $row = new static($row);
+		$result = static::query($query, null, function($row) {return new static($row);});
+		// foreach ($result as &$row) $row = new static($row);
 		return $result;
 	}
 	
 	static function find($id) {
 		$query = static::baseQuery()->where("id = ?", [$id]);
-		$result = static::query($query, $query->params);
+		$result = static::query($query, $query->params, function($row) {return new static($row);});
 		if (count($result) > 0)
-			return new static(current($result));
+			return current($result);
 			
 		return null;
 	}
@@ -63,11 +84,14 @@ class Model extends Base {
 		if (count($result) > 0)
 			return new static(current($result));		
 	}
-	
+		
 	// ======================
 	// = end static methods =
 	// ======================
-		
+	
+	private
+		$isNew = true; // tracks the new status of record
+	
 	function __construct($vars = array()) {
 		foreach ($vars as $property => $value) {
 			$this->$property = $value;
@@ -87,7 +111,7 @@ class Model extends Base {
 	}
 	
 	function isNew() {
-		if (!isset($this->{static::$primaryKey})) return true;
+		if (isset($this->{static::$primaryKey})) return false;
 		return $this->isNew;
 	}
 		
@@ -98,18 +122,36 @@ class Model extends Base {
 		$query = new Query($tname);
 		$query->update($tname, $this->propsArray)->where(static::$primaryKey.' = ?', [$this->{static::$primaryKey}])->limit(1);
 		$result = static::query($query, $query->params);
-		return $result;
+		// return $result;
+		return "$query";
 	}
 	
-	function insert() {
+	// =====================================================
+	// = Sync the object properties to the database values =
+	// =====================================================
+	function sync() {
+		if ($this->isNew()) return false;
+		$query = static::baseQuery()->where("id = ?", [$this->id]);
+		$params = current(static::query($query, $query->params));
+		foreach ($params as $key => $param) $this->$key = $param;
+	}
+	
+	protected function insert() {
 		$tname = static::tableName();
 		$properties = $this->propsArray;
 		if (count($properties) < 1) $properties[static::$primaryKey] = null;
 		$query = new Query($tname);
 		$query->insert($tname, $properties);
-		return static::query($query, $query->params);
+		$this->id = static::query($query, $query->params);
+		return $this->sync();
+		// return $pk;
 	}
 	
+	function destroy() {
+		if ($this->isNew()) return false;
+		static::delete($this->id);
+		$this->id = null;
+	}
 	
 	function __toString() {
 		return print_r($this, true);

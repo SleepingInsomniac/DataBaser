@@ -51,6 +51,11 @@ class Query extends \Lx\Object {
 		return $this;
 	}
 	
+	function delete($table) {
+		$this->appendStmt('delete', "DELETE FROM `$table`");
+		return $this;
+	}
+	
 	protected function appendStmt($type, $sql, $params = null) {
 		if (!isset($this->stmts[$type])) $this->stmts[$type] = array();
 		$this->stmts[$type][] = $sql;
