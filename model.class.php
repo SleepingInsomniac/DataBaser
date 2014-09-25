@@ -10,11 +10,14 @@ class Model extends Base {
 	static protected $belongsTo = null;
 	static protected $hasOne = [];
 	
+	private $isNew = true;
+	
 	static function passiveProperties() {
 		return [
 			static::$primaryKey,
 			'created_at',
-			'updated_at'
+			'updated_at',
+			'isNew'
 		];
 	}
 	
@@ -64,40 +67,52 @@ class Model extends Base {
 	// ======================
 	// = end static methods =
 	// ======================
-	
-	function properties() {
-		$reflect = new \ReflectionClass($this);
-		$props   = $reflect->getProperties(\ReflectionProperty::IS_PUBLIC | \ReflectionProperty::IS_PROTECTED);
-		foreach ($props as $prop) {
-			if ($prop->isStatic()) continue;
-			$prop = $prop->getName();
-			echo $prop."\n";
-		}
-	}
 		
 	function __construct($vars = array()) {
 		foreach ($vars as $property => $value) {
 			$this->$property = $value;
 		}
+		if (isset($this->{static::$primaryKey})) $this->isNew = false;
+	}
+	
+	// getter for $->propsArray;
+	function getPropsArray() {
+		// return properties as array
+		$properties = [];
+		foreach ($this as $prop => $value) {
+			if (!in_array($prop, static::passiveProperties()))
+				$properties[$prop] = $value;
+		} 
+		return $properties;
+	}
+	
+	function isNew() {
+		if (!isset($this->{static::$primaryKey})) return true;
+		return $this->isNew;
 	}
 		
 	function save() {
-		if (!isset($this->{static::$primaryKey})) return $this->insert();
+		// if there's no pimary key, this is a new record.
+		if ($this->isNew()) return $this->insert();
 		$tname = static::tableName();
 		$query = new Query($tname);
-		$properties = [];
-		foreach ($this as $prop => $value) {
-			if (!in_array($prop, static::passiveProperties())) $properties[$prop] = $value;
-		} 
-		$query->update($tname, $properties)->where(static::$primaryKey.' = ?', [$this->{static::$primaryKey}])->limit(1);
+		$query->update($tname, $this->propsArray)->where(static::$primaryKey.' = ?', [$this->{static::$primaryKey}])->limit(1);
 		$result = static::query($query, $query->params);
-		// echo $query;
-		// var_dump($result);
 		return $result;
 	}
 	
 	function insert() {
-		// todo: implement
+		$tname = static::tableName();
+		$properties = $this->propsArray;
+		if (count($properties) < 1) $properties[static::$primaryKey] = null;
+		$query = new Query($tname);
+		$query->insert($tname, $properties);
+		return static::query($query, $query->params);
+	}
+	
+	
+	function __toString() {
+		return print_r($this, true);
 	}
 	
 }

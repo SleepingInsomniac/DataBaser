@@ -3,22 +3,6 @@ namespace Dbaser;
 
 class Query extends \Lx\Object {
 	
-	static function insert($table, $cols) {
-		$qs = array();
-		$cs = array();
-		$params = array();
-		foreach ($cols as $col => $value) {
-			$qs[] = '?';
-			$params[] = $value;
-			$cs[] = $col;
-		}
-		return "INSERT INTO `$table` (`" . implode($cs, "`, `") . "`) VALUES (" . implode($qs, ",") . ");";
-	}
-	
-	// ==============
-	// = end static =
-	// ==============
-	
 	protected
 		$from = array(),
 		$stmts = array(),
@@ -30,6 +14,20 @@ class Query extends \Lx\Object {
 	
 	function getParams() {
 		return $this->params;
+	}
+	
+	function insert($table, $cols) {
+		$qs = array();
+		$cs = array();
+		$params = array();
+		foreach ($cols as $col => $value) {
+			$qs[] = '?';
+			$params[] = $value;
+			$cs[] = $col;
+		}
+		$sql = "INSERT INTO `$table` (`" . implode($cs, "`, `") . "`) VALUES (" . implode($qs, ",") . ");";
+		$this->appendStmt('insert', $sql, $params);
+		return $this;
 	}
 	
 	function select($tables, $distinct = false) {
