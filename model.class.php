@@ -10,6 +10,123 @@ class Model extends Base {
 	//relations: [tableName => className]
 	static protected $hasMany = [];
 	static protected $manyToMany = [];
+			
+	protected static function passiveProperties() {
+		$passProps = [
+			static::$primaryKey,
+			'created_at',
+			'updated_at',
+			'isNew'
+		];
+		
+		// exclude relations as well...
+		$passProps = array_merge($passProps, array_keys(static::$manyToMany));
+		
+		return $passProps;
+	}
+	
+	// if the static var tableName isn't set, figure out based on conventions
+	static function tableName() {
+		if (static::$tableName) return static::$tableName;
+		$tname = strtolower( get_called_class() );
+				
+		return static::plural($tname);
+	}
+	
+	// generate a query object that has the base columns and table select;
+	protected static function baseQuery() {
+		$tname = static::tableName();
+		$query = new Query($tname);
+		return $query->select([$tname => static::$columns]);
+	}
+	
+	// =======================
+	// = Create a new record =
+	// =======================
+	static function create($params = array()) {
+		$obj = new static($params);
+		$obj->save();
+		return $obj;
+	}
+	
+	// ===============================
+	// = Delete record from database =
+	// ===============================
+	static function delete($id) {		
+		$tname = static::tableName();
+		$query = new Query($tname);
+		$pk = static::$primaryKey;
+		$query->delete($tname)->where("`$tname`.`$pk` = ?", [$id]);
+		static::query($query, $query->params);
+	}
+	
+	// ======================
+	// = Return all records =
+	// ======================
+	static function all() {
+		$query = static::baseQuery();
+		$result = static::query($query, null, function($row) {return new static($row);});
+		// foreach ($result as &$row) $row = new static($row);
+		return $result;
+	}
+	
+	// =============================================
+	// = Find singular record based on primary key =
+	// =============================================
+	static function find($id) {
+		$query = static::baseQuery()->where("id = ?", [$id]);
+		$result = static::query($query, $query->params, function($row) {return new static($row);});
+		if (gettype($result) == "array")
+			return current($result);
+			
+		return $result;
+	}
+	
+	// =======================================
+	// = Find where column name equals value =
+	// =======================================
+	static function findByName($array) {
+		$query = static::baseQuery();
+		foreach ($array as $col => $val)
+			$query->where("`".static::tableName()."`.$col = ?", [$val]);
+		$result = static::query($query, $query->params);
+		foreach ($result as &$obj) $obj = new static($obj);
+		return $result;
+	}
+	
+	// =================
+	// = Select random =
+	// =================
+	static function random($limit = 1) {
+		$query = static::baseQuery()->orderBy("RAND()")->limit($limit);
+		$result = static::query($query, $query->params, function($row) {return new static($row);});
+		if (count($result) == 1)
+			return current($result);
+		return $result;
+	}
+	
+	// =================================================
+	// = Generate an array of objects based on raw SQL =
+	// =================================================
+	static function fromSQL($sql, $params = array(), $dataTypes = null) {
+		return static::query($sql, $params, function($row) { return new static($row); }, $datatypes);
+	}
+	
+	///////////////////// ====================== //////////////////////////
+	///////////////////// = end static methods = //////////////////////////
+	///////////////////// ====================== //////////////////////////
+	
+	private
+		$isNew = true; // tracks the new status of record
+	
+	function __construct($vars = array()) {
+		foreach ($vars as $property => $value) $this->$property = $value; // load all of the properties
+		if (isset($this->{static::$primaryKey})) $this->isNew = false; // update the status of isNew...
+	}
+	
+	// ====================
+	// = Relation methods =
+	// ====================
 	
 	// override the get function to catch and initialize relation properties
 	function __get($prop) {
@@ -53,100 +170,10 @@ class Model extends Base {
 		// convert the arrays to the correct class
 		foreach ($this->$foreignTable as &$row) $row = new $className($row);
 	}
-		
-	protected static function passiveProperties() {
-		$passProps = [
-			static::$primaryKey,
-			'created_at',
-			'updated_at',
-			'isNew'
-		];
-		
-		// exclude relations...
-		$passProps = array_merge($passProps, array_keys(static::$manyToMany));
-		
-		return $passProps;
-	}
 	
-	static function tableName() {
-		if (static::$tableName) return static::$tableName;
-		$tname = strtolower( get_called_class() );
-				
-		return static::plural($tname);
-	}
-	
-	protected static function baseQuery() {
-		$tname = static::tableName();
-		$query = new Query($tname);
-		return $query->select([$tname => static::$columns]);
-	}
-	
-	// =======================
-	// = Create a new record =
-	// =======================
-	static function create($params = array()) {
-		$obj = new static($params);
-		$obj->save();
-		return $obj;
-	}
-	
-	// ===============================
-	// = Delete record from database =
-	// ===============================
-	static function delete($id) {		
-		$tname = static::tableName();
-		$query = new Query($tname);
-		$pk = static::$primaryKey;
-		$query->delete($tname)->where("`$tname`.`$pk` = ?", [$id]);
-		static::query($query, $query->params);
-	}
-	
-	// ======================
-	// = Return all records =
-	// ======================
-	static function all() {
-		$query = static::baseQuery();
-		$result = static::query($query, null, function($row) {return new static($row);});
-		// foreach ($result as &$row) $row = new static($row);
-		return $result;
-	}
-	
-	static function find($id) {
-		$query = static::baseQuery()->where("id = ?", [$id]);
-		$result = static::query($query, $query->params, function($row) {return new static($row);});
-		if (gettype($result) == "array")
-			return current($result);
-			
-		return $result;
-	}
-	
-	static function findByName($array) {
-		$query = static::baseQuery();
-		foreach ($array as $col => $val)
-			$query->where("`".static::tableName()."`.$col = ?", [$val]);
-		$result = static::query($query, $query->params);
-		foreach ($result as &$obj) $obj = new static($obj);
-		return $result;
-	}
-	
-	static function random() {
-		$query = static::baseQuery()->orderBy("RAND()")->limit(1);
-		$result = static::query($query, $query->params);
-		if (count($result) > 0)
-			return new static(current($result));		
-	}
-		
-	// ======================
-	// = end static methods =
-	// ======================
-	
-	private
-		$isNew = true; // tracks the new status of record
-	
-	function __construct($vars = array()) {
-		foreach ($vars as $property => $value) $this->$property = $value; // load all of the properties
-		if (isset($this->{static::$primaryKey})) $this->isNew = false; // update the status of isNew...
-	}
+	// ========================
+	// = end relation methods =
+	// ========================
 	
 	// return properties as array
 	function toArray() {
