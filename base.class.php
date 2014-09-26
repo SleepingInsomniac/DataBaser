@@ -48,7 +48,6 @@ class Base extends \Lx\Object{
 	// ==============================================================
 	// = This function talks to the mysqli object and gets the data =
 	// ==============================================================
-	// static function queryRaw() { return call_user_func_array([get_called_class(), 'query'], func_get_args()); }
 	protected static function query($sql, $params = null, $rowCallback = null, $datatypes = null) {
 		// if datatypes aren't provided, figure them out.
 		if ($params && !$datatypes) $datatypes = static::dataTypes($params);

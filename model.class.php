@@ -4,13 +4,37 @@ namespace Dbaser;
 class Model extends Base {
 	
 	static protected $primaryKey = 'id';
-	static protected $tableName = null;
+	static protected $tableName = null; // override this if you want a different table nam than the pluralized version of your class name
 	static protected $columns = ["*"]; // override this for speed performance
+	
+	//relations
 	static protected $hasMany = [];
-	static protected $belongsTo = null;
 	static protected $hasOne = [];
+	static protected $manyToMany = [];
+	
+	function __get($prop) {
+		// lazy load relations
+		if ( isset(static::$manyToMany[$prop]) && !isset($this->$prop) ) {
+			static::manyToMany($prop); // initialize
+		}
+		return parent::__get($prop);
+	}
+	// function __set($prop, $value) {
+	// 	return parent::__set($prop, $value);
+	// }
+	
+	protected function manyToMany($foreignTable) {
+		$className = static::$manyToMany[$foreignTable];
+		$joint = static::tableJoin(static::tableName(), $foreignTable);
+		$query = new Query($joint);
+		$query->select([$className::tableName() => $className::$columns]);
+		$query->join("INNER JOIN `{$className::tableName()}` ON `$joint`.`{$className::tableName()}` = `{$className::tableName()}`.`{$className::$primaryKey}`");
+		$query->where("`$joint`.`{$this::tableName()}` = ?", [$this->id]);
+		$this->$foreignTable = $className::query($query, $query->params);
+		foreach ($this->$foreignTable as &$row) $row = new $className($row);
+	}
 		
-	static function passiveProperties() {
+	protected static function passiveProperties() {
 		return [
 			static::$primaryKey,
 			'created_at',
@@ -21,7 +45,17 @@ class Model extends Base {
 	
 	static function tableName() {
 		if (static::$tableName) return static::$tableName;
-		return strtolower( get_called_class() ) . "s";
+		$tname = strtolower( get_called_class() );
+		
+		// Pluralize
+		if (substr($tname, -1) == "y") {
+			$tname = substr($tname, 0, strlen($tname) - 1);
+			$suffix = "ies";
+		} else {
+			$suffix = "s";
+		}
+		
+		return $tname . $suffix;
 	}
 	
 	protected static function baseQuery() {
@@ -63,10 +97,10 @@ class Model extends Base {
 	static function find($id) {
 		$query = static::baseQuery()->where("id = ?", [$id]);
 		$result = static::query($query, $query->params, function($row) {return new static($row);});
-		if (count($result) > 0)
+		if (gettype($result) == "array")
 			return current($result);
 			
-		return null;
+		return $result;
 	}
 	
 	static function findByName($array) {
@@ -93,15 +127,12 @@ class Model extends Base {
 		$isNew = true; // tracks the new status of record
 	
 	function __construct($vars = array()) {
-		foreach ($vars as $property => $value) {
-			$this->$property = $value;
-		}
-		if (isset($this->{static::$primaryKey})) $this->isNew = false;
+		foreach ($vars as $property => $value) $this->$property = $value; // load all of the properties
+		if (isset($this->{static::$primaryKey})) $this->isNew = false; // update the status of isNew...
 	}
 	
-	// getter for $->propsArray;
-	function getPropsArray() {
-		// return properties as array
+	// return properties as array
+	function toArray() {
 		$properties = [];
 		foreach ($this as $prop => $value) {
 			if (!in_array($prop, static::passiveProperties()))
@@ -116,14 +147,14 @@ class Model extends Base {
 	}
 		
 	function save() {
-		// if there's no pimary key, this is a new record.
+		// insert if new
 		if ($this->isNew()) return $this->insert();
 		$tname = static::tableName();
 		$query = new Query($tname);
-		$query->update($tname, $this->propsArray)->where(static::$primaryKey.' = ?', [$this->{static::$primaryKey}])->limit(1);
+		$query->update($tname, $this->toArray())->where(static::$primaryKey.' = ?', [$this->{static::$primaryKey}])->limit(1);
 		$result = static::query($query, $query->params);
-		// return $result;
-		return "$query";
+		$this->isNew = false;
+		return $this;
 	}
 	
 	// =====================================================
@@ -136,15 +167,16 @@ class Model extends Base {
 		foreach ($params as $key => $param) $this->$key = $param;
 	}
 	
-	protected function insert() {
+	protected function insert($sync = true) {
 		$tname = static::tableName();
-		$properties = $this->propsArray;
+		$properties = $this->toArray();
 		if (count($properties) < 1) $properties[static::$primaryKey] = null;
 		$query = new Query($tname);
 		$query->insert($tname, $properties);
 		$this->id = static::query($query, $query->params);
-		return $this->sync();
-		// return $pk;
+		if ($sync)
+			return $this->sync();
+		return $this;
 	}
 	
 	function destroy() {
