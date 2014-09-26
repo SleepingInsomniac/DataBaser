@@ -105,7 +105,10 @@ class Base extends \Lx\Object{
 		
 		if (self::$connection->insert_id || preg_match("/(^| )insert /i", $sql))
 			return self::$connection->insert_id;
-
+		
+		if (preg_match("/(^| )update/i", $sql))
+			return $stmt->affected_rows;
+		
 		$stmt->free_result();
 
 		return $return;
