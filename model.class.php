@@ -9,14 +9,40 @@ class Model extends Base {
 	
 	//relations: [tableName => className]
 	static protected $hasMany = [];
-	static protected $hasOne = [];
 	static protected $manyToMany = [];
 	
 	// override the get function to catch and initialize relation properties
 	function __get($prop) {
+		
 		// lazy load relations
-		if ( isset(static::$manyToMany[$prop]) && !isset($this->$prop) ) static::manyToMany($prop); // initialize
+		if ( isset(static::$manyToMany[$prop]) && !isset($this->$prop) ) $this->manyToMany($prop);
+		if ( isset(static::$hasMany[$prop])    && !isset($this->$prop) ) $this->hasMany($prop);
+		
 		return parent::__get($prop);
+	}
+	
+	static protected function plural($string) {
+		$string = preg_replace("/y$/i", "ie", $string); // substitute y for ie and append s
+		return $string . "s";
+	}
+	static protected function singular($string) {
+		$string = preg_replace("/ies$/i", "y", $string);
+		$string = preg_replace("/s$/i", "", $string);
+		return $string;
+	}
+	
+	protected function hasMany($foreignTable) {
+		$className = static::$hasMany[$foreignTable];
+		// select from the foreign table
+		$query = new Query($foreignTable);
+		// column name in foreign table is singular...
+		$cname = static::singular(static::tableName());
+		// get a 2d array where the primary key matches the value of this objcet's primary key
+		$query->select([$foreignTable => $className::$columns])->where("`$foreignTable`.`$cname` = ?", [$this->{static::$primaryKey}]);
+		$this->$foreignTable = $className::query($query, $query->params);
+		// convert the results to their respective class;
+		if ($this->$foreignTable)
+			foreach ($this->$foreignTable as &$row) $row = new $className($row);
 	}
 	
 	protected function manyToMany($foreignTable) {
@@ -55,16 +81,8 @@ class Model extends Base {
 	static function tableName() {
 		if (static::$tableName) return static::$tableName;
 		$tname = strtolower( get_called_class() );
-		
-		// Pluralize
-		if (substr($tname, -1) == "y") {
-			$tname = substr($tname, 0, strlen($tname) - 1);
-			$suffix = "ies";
-		} else {
-			$suffix = "s";
-		}
-		
-		return $tname . $suffix;
+				
+		return static::plural($tname);
 	}
 	
 	protected static function baseQuery() {
