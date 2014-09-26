@@ -82,13 +82,13 @@ class Model extends Base {
 		return $result;
 	}
 	
-	// =======================================
-	// = Find where column name equals value =
-	// =======================================
-	static function findByName($array) {
+	// ==============================================
+	// = Find where column name (equals/sign) value =
+	// ==============================================
+	static function findByName($array, $sign = "=") {
 		$query = static::baseQuery();
 		foreach ($array as $col => $val)
-			$query->where("`".static::tableName()."`.$col = ?", [$val]);
+			$query->where("`".static::tableName()."`.$col $sign ?", [$val]);
 		$result = static::query($query, $query->params);
 		foreach ($result as &$obj) $obj = new static($obj);
 		return $result;
@@ -112,6 +112,27 @@ class Model extends Base {
 		return static::query($sql, $params, function($row) { return new static($row); }, $datatypes);
 	}
 	
+	// ==============================
+	// = info based static methods: =
+	// ==============================
+	
+	// return the number of records in a table
+	static function records() {
+		$tname = static::tableName();
+		$pk = static::$primaryKey;
+		return current(current(static::query("SELECT COUNT(`$tname`.`$pk`) AS count FROM `$tname`;")));
+	}
+	
+	// where column (condition) value
+	static function count($condition) {
+		$tname = static::tableName();
+		$pk = static::$primaryKey;
+		return current(current(static::query(
+			"SELECT COUNT(`$tname`.`$pk`) AS count FROM `$tname`
+			 WHERE $condition;"
+		)));
+	}
+		
 	///////////////////// ====================== //////////////////////////
 	///////////////////// = end static methods = //////////////////////////
 	///////////////////// ====================== //////////////////////////
