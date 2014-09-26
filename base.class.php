@@ -45,6 +45,19 @@ class Base extends \Lx\Object{
 		return $j;
 	}
 	
+	// =============================================
+	// = Rules for naming convention resolution... =
+	// =============================================
+	static protected function plural($string) {
+		$string = preg_replace("/y$/i", "ie", $string); // substitute y for ie and append s
+		return $string . "s";
+	}
+	static protected function singular($string) {
+		$string = preg_replace("/ies$/i", "y", $string);
+		$string = preg_replace("/s$/i", "", $string);
+		return $string;
+	}
+	
 	// ==============================================================
 	// = This function talks to the mysqli object and gets the data =
 	// ==============================================================

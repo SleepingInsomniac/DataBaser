@@ -20,17 +20,7 @@ class Model extends Base {
 		
 		return parent::__get($prop);
 	}
-	
-	static protected function plural($string) {
-		$string = preg_replace("/y$/i", "ie", $string); // substitute y for ie and append s
-		return $string . "s";
-	}
-	static protected function singular($string) {
-		$string = preg_replace("/ies$/i", "y", $string);
-		$string = preg_replace("/s$/i", "", $string);
-		return $string;
-	}
-	
+		
 	protected function hasMany($foreignTable) {
 		$className = static::$hasMany[$foreignTable];
 		// select from the foreign table
