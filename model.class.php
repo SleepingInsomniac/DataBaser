@@ -132,7 +132,35 @@ class Model extends Base {
 			 WHERE $condition;"
 		)));
 	}
-		
+	
+	// ===================
+	// = get by relation =
+	// ===================
+	static function byRelation($model, $pkValue) {
+		if (in_array($model, static::$manyToMany)) {
+			$joint = static::tableJoin(static::tableName(), $model::tableName());
+			
+			// query from the joint table
+			$query = new Query($joint);
+			// select only the columns from requested class
+			$query->select([static::tableName() => static::$columns]);
+			// join the requested class on the join table based on primary key
+			$t = static::tableName();
+			$pk = static::$primaryKey;
+			$query->join("INNER JOIN `$t` ON `$joint`.`$t` = `$t`.`$pk`");
+			// limit to the primary key of this table
+			$query->where("`$joint`.`{$model::tableName()}` = ?", [$pkValue]);
+			// run the query and get back a 2d array
+			echo $query;
+			return $model::query($query, $query->params, function($row) {
+				// convert array to object.
+				return new static($row);
+			});
+		} else {
+			
+		}
+	}
+	
 	///////////////////// ====================== //////////////////////////
 	///////////////////// = end static methods = //////////////////////////
 	///////////////////// ====================== //////////////////////////
