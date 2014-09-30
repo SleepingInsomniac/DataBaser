@@ -156,9 +156,13 @@ class Model extends Base {
 				// convert array to object.
 				return new static($row);
 			});
-		} else {
-			
 		}
+		
+		if (in_array(get_called_class(), $model::$hasMany)) {
+			return static::findByName([static::singular($model) => $pkValue]);
+		}
+		
+		return false;
 	}
 	
 	///////////////////// ====================== //////////////////////////
