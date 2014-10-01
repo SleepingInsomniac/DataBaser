@@ -7,7 +7,7 @@ class Object {
 	function __set($property, $value) { return $this->emulate("set", $property, $value); }
 	
 	private function emulate($action, $property, $value = null) {
-		$method = $action.ucfirst($property);
+		$method = $action . ucfirst($property);
 		if (method_exists($this, $method)) return $this->$method($value);
 		if (property_exists($this, $property)) {
 			$ref = new \ReflectionProperty($this, $property);
@@ -19,8 +19,13 @@ class Object {
 		return $this->synthesize($action, $property, $value);
 	}
 	private function synthesize($action, $property, $value) {
-		if ($action == 'get') return $this->$property;
-		if ($action == 'set') $this->$property = $value;
+		if ($action == 'get') {
+			if (!isset($this->$property)) return null;
+			return $this->$property;
+		}
+		if ($action == 'set') {
+			$this->$property = $value;
+		}
 	}
 		
 	function getClassName() {

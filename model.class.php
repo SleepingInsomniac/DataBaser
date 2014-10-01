@@ -136,29 +136,37 @@ class Model extends Base {
 	// ===================
 	// = get by relation =
 	// ===================
-	static function byRelation($model, $pkValue) {
+	static function byRelation($model, $pkValue = null) {
+		// if a model object is passed in, we can extrapolate the values from that.
+		if ($model instanceof Dbaser\Model) {
+			$model = $model->className;
+			$pkValue = $model->{$model::$primaryKey};
+		}
+		
+		// in the case of a many to many relation
 		if (in_array($model, static::$manyToMany)) {
-			$joint = static::tableJoin(static::tableName(), $model::tableName());
-			
-			// query from the joint table
-			$query = new Query($joint);
-			// select only the columns from requested class
-			$query->select([static::tableName() => static::$columns]);
-			// join the requested class on the join table based on primary key
+			$joint = static::tableJoin(static::tableName(), $model::tableName());			
+			$query = new Query($joint); // query from the joint table
+			$query->select([static::tableName() => static::$columns]); // select only the columns from this class
 			$t = static::tableName();
 			$pk = static::$primaryKey;
-			$query->join("INNER JOIN `$t` ON `$joint`.`$t` = `$t`.`$pk`");
-			// limit to the primary key of this table
-			$query->where("`$joint`.`{$model::tableName()}` = ?", [$pkValue]);
+			$query->join("INNER JOIN `$t` ON `$joint`.`$t` = `$t`.`$pk`"); // join the requested class on the join table based on primary key
+			$query->where("`$joint`.`{$model::tableName()}` = ?", [$pkValue]); // limit to the primary key of relation
 			// run the query and get back a 2d array
-			echo $query;
 			return $model::query($query, $query->params, function($row) {
 				// convert array to object.
 				return new static($row);
 			});
-		} else {
-			
 		}
+		
+		// one to many...
+		if (in_array($model, static::$hasMany)) {
+			// add one to many relation
+			return static::findByName([$model => $pkValue]);
+		}
+		
+		// at this point all else has failed.
+		return false;
 	}
 	
 	///////////////////// ====================== //////////////////////////
