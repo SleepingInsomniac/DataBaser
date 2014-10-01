@@ -159,10 +159,8 @@ class Model extends Base {
 			});
 		}
 		
-		// one to many...
-		if (in_array($model, static::$hasMany)) {
-			// add one to many relation
-			return static::findByName([$model => $pkValue]);
+		if (in_array(get_called_class(), $model::$hasMany)) {
+			return static::findByName([static::singular($model) => $pkValue]);
 		}
 		
 		// at this point all else has failed.
