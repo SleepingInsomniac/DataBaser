@@ -174,6 +174,10 @@ class Model extends Base {
 	private
 		$isNew = true; // tracks the new status of record
 	
+	static function factory($vars = array()) {
+		return new static($vars);
+	}
+	
 	function __construct($vars = array()) {
 		foreach ($vars as $property => $value) $this->$property = $value; // load all of the properties
 		if (isset($this->{static::$primaryKey})) $this->isNew = false; // update the status of isNew...
@@ -221,11 +225,16 @@ class Model extends Base {
 		// limit to the primary key of this table
 		$query->where("`$joint`.`{$this::tableName()}` = ?", [$this->{static::$primaryKey}]);
 		// run the query and get back a 2d array, set to the requested prop
-		$array = $className::query($query, $query->params);
-		foreach ($array as &$row) $row = new $className($row);
-		$this->$foreignTable = new ModelCollection();
-		$this->$foreignTable->collection = $array;
-		$this->$foreignTable->owner = $this;
+		$this->$foreignTable = new ModelCollection(
+			$className::query(
+				$query,
+				$query->params,
+				function ($row) use ($className) {
+					return new $className($row);
+				}
+			),
+			$this
+		);
 	}
 	
 	// ========================

@@ -3,12 +3,15 @@ namespace Dbaser;
 
 class ModelCollection extends Base implements \ArrayAccess, \Iterator {
 	
+	protected
+		$owner = null; // the owning database model in the relation.
+	
 	public
-		$owner = null,    // the owning database model in the relation.
 		$collection = array();
 	
-	function __construct () {
-		$collection = func_get_args();
+	function __construct ($array = array(), $owner = null) {
+		$this->collection = $array;
+		$this->owner = $owner;
 	}
 	
 	
@@ -60,8 +63,8 @@ class ModelCollection extends Base implements \ArrayAccess, \Iterator {
 	// = End Interfaces =
 	// ==========================
 	
-	function length    () { return count      ( $this->collection ); }
-	function keys      () { return array_keys ( $this->collection ); }
+	function length  () { return count      ( $this->collection ); }
+	function keys    () { return array_keys ( $this->collection ); }
     
 	function push    ($object) { $this->addRelation($object); }
 	function pop     ()        { $object = array_pop ( $this->collection ); $this->removeRelation($object); return $object; }
@@ -76,7 +79,7 @@ class ModelCollection extends Base implements \ArrayAccess, \Iterator {
 	// = Getters / Setters =
 	// =====================
 	
-	function getLength     ()       { return count      ( $this->collection ); } // getter
-	function getKeys       ()       { return array_keys ( $this->collection ); } // getter
+	function getLength () { return count      ( $this->collection ); } // getter
+	function getKeys   () { return array_keys ( $this->collection ); } // getter
 	
 }
