@@ -1,49 +1,82 @@
 <?php
 namespace Dbaser;
 
-class ModelCollection extends \Lx\Object implements \ArrayAccess, \Iterator {
+class ModelCollection extends Base implements \ArrayAccess, \Iterator {
 	
-	private
+	public
+		$owner = null,    // the owning database model in the relation.
 		$collection = array();
 	
-	function __construct() {
-		$this->collection = func_get_args();
+	function __construct () {
+		$collection = func_get_args();
+	}
+	
+	
+	protected function addRelation($object) {
+		if ( !isset($this->owner) ) return false; // can't add without
+		$owner = $this->owner;
+		
+		$joint = static::tableJoin($owner->tableName, $object->tableName); // get the joint table
+		$query = new Query($joint);
+		$query->insert($joint, [
+				$owner->tableName => $owner->primaryKey,
+				$object->tableName => $object->primaryKey
+		]);
+		
+		$key = static::query($query, $query->params);
+		$this->collection[] = $object; // append to the array...
+		return $key;
+	}
+	protected function removeRelation($object) {
+		if ( !isset($this->owner) ) return false; // can't add without
+		$owner = $this->owner;
+		
+		$joint = static::tableJoin($owner->tableName, $object->tableName); // get the joint table
+		$query = new Query($joint);
+		$query->delete($joint)->where("$object->tableName = ? AND $owner->tableName = ?", [$object->primaryKey, $owner->primaryKey]);
+		static::query($query, $query->params);
 	}
 	
 	// ================================
 	// = Array Access Implementation: =
 	// ================================
-		
-    function offsetSet    ($offset, $value) { is_null($offset) ? $this->collection[] = $value : $this->collection[$offset] = $value; }
-	function offsetExists ($offset) { return isset($this->collection[$offset]); }
-	function offsetUnset  ($offset) { unset($this->collection[$offset]); }
-    function offsetGet    ($offset) { if (isset($this->collection[$offset])) return $this->collection[$offset]; }
+	
+    function offsetSet    ($offset, $value) { $this->addRelation($value); }
+	function offsetUnset  ($offset) { $this->removeRelation($this->collection[$offset]); unset($this->collection[$offset]); }
+	function offsetExists ($offset) { return isset( $this->collection[$offset] ); }
+    function offsetGet    ($offset) { if    (isset( $this->collection[$offset] )) return $this->collection[$offset]; }
 	
 	// =======================
 	// = Iterator Interface: =
 	// =======================
 	
-    function rewind  () { reset($this->collection); }
-    function current () { return current($this->collection); }
-    function key     () { return key($this->collection); }
-    function next    () { next($this->collection); }
+    function rewind  () {        reset   ( $this->collection ); }
+    function current () { return current ( $this->collection ); }
+    function key     () { return key     ( $this->collection ); }
+    function next    () {        next    ( $this->collection ); }
     function valid   () { return $this->offsetExists($this->key()); }
 	
 	// ==========================
 	// = End Interfaces =
 	// ==========================
 	
-	function length    () { return count($this->collection); }
-	function getLength () { return count($this->collection); } // getter
-	function keys      () { return array_keys($this->collection); }
-	function getKeys   () { return array_keys($this->collection); } // getter
+	function length    () { return count      ( $this->collection ); }
+	function keys      () { return array_keys ( $this->collection ); }
     
-	function push    ($object) { return array_push($this->collection, $object); }
-	function unshift ($object) { return array_unshift($this->collection, $object); }
-	function pop     () { return array_pop($this->collection); }
-	function shift   () { return array_shift($this->collection); }
+	function push    ($object) { $this->addRelation($object); }
+	function pop     ()        { $object = array_pop ( $this->collection ); $this->removeRelation($object); return $object; }
+	// function shift   ()        { return array_shift   ( $this->collection ); }
+	// function unshift ($object) { return array_unshift ( $this->collection, $object ); }
 	
-	function __toString() {
-		return print_r($this->collection, true);
-	}
+	function delete($offset) { $this->offsetUnset($offset); }
+	
+	function __toString () { return print_r( $this->collection, true ); }
+	
+	// =====================
+	// = Getters / Setters =
+	// =====================
+	
+	function getLength     ()       { return count      ( $this->collection ); } // getter
+	function getKeys       ()       { return array_keys ( $this->collection ); } // getter
+	
 }

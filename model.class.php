@@ -10,7 +10,7 @@ class Model extends Base {
 	//relations: [tableName => className]
 	static protected $hasMany = [];
 	static protected $manyToMany = [];
-			
+	
 	protected static function passiveProperties() {
 		$passProps = [
 			static::$primaryKey,
@@ -152,10 +152,14 @@ class Model extends Base {
 			$query->where("`$joint`.`{$model::tableName()}` = ?", [$pkValue]);
 			// run the query and get back a 2d array
 			echo $query;
-			return $model::query($query, $query->params, function($row) {
-				// convert array to object.
-				return new static($row);
-			});
+			$collection = new ModelCollection(
+				$model::query($query, $query->params, function($row) {
+					// convert array to object.
+					return new static($row);
+				})
+			);
+			$collection->owner = self;
+			return $collection;
 		}
 		
 		if (in_array(get_called_class(), $model::$hasMany)) {
@@ -219,9 +223,11 @@ class Model extends Base {
 		// limit to the primary key of this table
 		$query->where("`$joint`.`{$this::tableName()}` = ?", [$this->{static::$primaryKey}]);
 		// run the query and get back a 2d array, set to the requested prop
-		$this->$foreignTable = $className::query($query, $query->params);
-		// convert the arrays to the correct class
-		foreach ($this->$foreignTable as &$row) $row = new $className($row);
+		$array = $className::query($query, $query->params);
+		foreach ($array as &$row) $row = new $className($row);
+		$this->$foreignTable = new ModelCollection();
+		$this->$foreignTable->collection = $array;
+		$this->$foreignTable->owner = $this;
 	}
 	
 	// ========================
@@ -284,5 +290,14 @@ class Model extends Base {
 	function __toString() {
 		return print_r($this, true);
 	}
+	
+	// ===========
+	// = Getters =
+	// ===========
+	// these are automatically computed when requesting the camel-case property name ( getThingName : $obj->thingName )
+	
+	function getPrimaryKey     () { return $this->{$this::$primaryKey}; }
+	function getPrimaryKeyName () { return $this::$primaryKey; }
+	function getTableName      () { return $this->tableName(); }
 	
 }
