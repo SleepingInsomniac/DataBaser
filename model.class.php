@@ -205,17 +205,16 @@ class Model extends Base {
 		$cname = static::singular(static::tableName());
 		// get a 2d array where the primary key matches the value of this objcet's primary key
 		$query->select([$foreignTable => $className::$columns])->where("`$foreignTable`.`$cname` = ?", [$this->{static::$primaryKey}]);
-		$this->$foreignTable = $className::query($query, $query->params);
-		// convert the results to their respective class;
-		if ($this->$foreignTable)
-			foreach ($this->$foreignTable as &$row) $row = new $className($row);
+		$this->$foreignTable = $className::query($query, $query->params, function($row) use ($className) {
+			return new $className($row);
+		});
 	}
 	
 	protected function manyToMany($foreignTable) {
 		// get classname defined in the static $manyToMany (k/v) array
 		$className = static::$manyToMany[$foreignTable];
 		// get the proper order of tables as per naming convention for join table.
-		$joint = static::tableJoin(static::tableName(), $foreignTable);
+		$joint = static::tableJoin($this->tableName, $foreignTable);
 		// query from the joint table
 		$query = new Query($joint);
 		// select only the columns from requested class
@@ -223,7 +222,7 @@ class Model extends Base {
 		// join the requested class on the join table based on primary key
 		$query->join("INNER JOIN `{$className::tableName()}` ON `$joint`.`{$className::tableName()}` = `{$className::tableName()}`.`{$className::$primaryKey}`");
 		// limit to the primary key of this table
-		$query->where("`$joint`.`{$this::tableName()}` = ?", [$this->{static::$primaryKey}]);
+		$query->where("`$joint`.`$this->tableName` = ?", [$this->primaryKey]);
 		// run the query and get back a 2d array, set to the requested prop
 		$this->$foreignTable = new ModelCollection(
 			$className::query(
@@ -259,9 +258,8 @@ class Model extends Base {
 	function save() {
 		// insert if new
 		if ($this->isNew()) return $this->insert();
-		$tname = static::tableName();
-		$query = new Query($tname);
-		$query->update($tname, $this->toArray())->where(static::$primaryKey.' = ?', [$this->{static::$primaryKey}])->limit(1);
+		$query = new Query($this->tableName);
+		$query->update($this->tableName, $this->toArray())->where($this->primaryKeyName.' = ?', [$this->primaryKey])->limit(1);
 		$result = static::query($query, $query->params);
 		return $result;
 	}
