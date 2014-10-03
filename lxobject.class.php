@@ -12,7 +12,7 @@ class Object {
 		if (property_exists($this, $property)) {
 			$ref = new \ReflectionProperty($this, $property);
 			if ($ref->isProtected() || $ref->isPrivate()) {
-				trigger_error("Tried to access protected or private variable '$property'.");
+				// trigger_error("Tried to access protected or private variable '$property'.");
 				return null;
 			}
 		}

@@ -32,10 +32,12 @@ class Query extends \Lx\Object {
 	
 	function select($tables, $distinct = false) {
 		($distinct) ? $type = "select distinct" : $type = 'select';
+		$stmts = array();
 		foreach ($tables as $table => $cols) {
-			$stmt = strToUpper($type) ." `$table`.". implode($cols, ", `$table`.");
-			$this->appendStmt($type, $stmt);
+			$stmts[] = " `$table`.". implode($cols, ", `$table`.");
 		}
+		$this->appendStmt($type, implode($stmts, ","));
+		
 		return $this;
 	}
 	
@@ -96,7 +98,7 @@ class Query extends \Lx\Object {
 			switch($type) {
 				case "select":
 				case "select distinct":
-					$sql[] = implode($stmts, "\n") . " FROM ".implode($this->from, ", ");
+					$sql[] = strToUpper($type) . " " . implode($stmts, "\n") . " FROM ".implode($this->from, ", ");
 					break;
 				default:
 					$sql[] = implode($stmts, "\n");

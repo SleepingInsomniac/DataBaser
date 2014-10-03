@@ -12,6 +12,10 @@ class Model extends Base {
 	static protected $hasMany    = [];
 	static protected $manyToMany = [];
 	
+	// when a manyToMany join should return extra columns
+	// [propertyName => [..cols...]]
+	static protected $richJoin = [];
+	
 	// propertios to ignore when saving
 	static $passiveProperties = [];
 	
@@ -217,9 +221,11 @@ class Model extends Base {
 	// override the get function to catch and initialize relation properties
 	function __get($prop) {
 		
+		// if ($value = parent::__get($prop)) return $value;
+		
 		// lazy load relations
 		if ( isset(static::$hasOne[$prop])     && !isset($this->$prop) ) $this->hasOne($prop);
-		if ( isset(static::$manyToMany[$prop]) && !isset($this->$prop) ) $this->manyToMany($prop);
+		if ( isset(static::$manyToMany[$prop]) && !isset($this->$prop) ) $this->manyToMany($prop, static::$richJoin[$prop]);
 		if ( isset(static::$hasMany[$prop])    && !isset($this->$prop) ) $this->hasMany($prop);
 		
 		return parent::__get($prop);
@@ -270,7 +276,12 @@ class Model extends Base {
 		$query = new Query($joint);
 		// select only the columns from requested class
 		$select = [$foreignTable => $className::$columns];
-		if (!empty($extraColumns)) $select[$joint] = $extraColumns; // add in additional columns
+		
+		if (!empty($extraColumns)) {
+			$select[$joint] = $extraColumns; // add in additional columns
+			static::$passiveProperties = array_merge(static::$passiveProperties, $extraColumns); // don't save these
+		}
+		
 		$query->select($select);
 		// join the requested class on the join table based on primary key
 		$query->join("INNER JOIN `{$className::tableName()}` ON `$joint`.`{$className::tableName()}` = `{$className::tableName()}`.`{$className::$primaryKey}`");
