@@ -119,7 +119,7 @@ class Model extends Base {
 	// = Generate an array of objects based on raw SQL =
 	// =================================================
 	static function fromSQL($sql, $params = array(), $dataTypes = null) {
-		return static::query($sql, $params, function($row) { return new static($row); }, $datatypes);
+		return static::query($sql, $params, function($row) { return new static($row); }, $dataTypes);
 	}
 	
 	// ==============================
