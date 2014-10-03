@@ -85,15 +85,25 @@ class Model extends Base {
 	// ==============================================
 	// = Find where column name (equals/sign) value =
 	// ==============================================
-	static function findByName($array, $sign = "=") {
+	static function findByName($array, $options = array()) {
+		// set up the default options
+		$options = self::setDefaults([
+			"sign" => ["value" => "=", "pattern" => "/^(=|<|>)$/"],
+			"limit" => ["pattern" => "/\d+/"]
+		], $options);
+		
 		$query = static::baseQuery();
-		foreach ($array as $col => $val)
-			$query->where("`".static::tableName()."`.$col $sign ?", [$val]);
+		foreach ($array as $col => $val) {
+			$query->where("`".static::tableName()."`.$col {$options['sign']} ?", [$val]);
+			if (isset($options['limit'])) {
+				$query->limit($options['limit']);
+			}
+		}
 		$result = static::query($query, $query->params);
 		foreach ($result as &$obj) $obj = new static($obj);
 		return $result;
 	}
-	
+		
 	// =================
 	// = Select random =
 	// =================
@@ -269,7 +279,7 @@ class Model extends Base {
 	// =====================================================
 	function sync() {
 		if ($this->isNew()) return false;
-		$query = static::baseQuery()->where("id = ?", [$this->id]);
+		$query = static::baseQuery()->where("$this->primaryKeyName = ?", [$this->primaryKey]);
 		$params = current(static::query($query, $query->params));
 		foreach ($params as $key => $param) $this->$key = $param;
 	}
@@ -280,7 +290,8 @@ class Model extends Base {
 		if (count($properties) < 1) $properties[static::$primaryKey] = null;
 		$query = new Query($tname);
 		$query->insert($tname, $properties);
-		$this->id = static::query($query, $query->params);
+		$pk = static::query($query, $query->params); // could return error;
+		$this->id = $pk;
 		if ($sync)
 			return $this->sync();
 		return $this;
@@ -294,6 +305,28 @@ class Model extends Base {
 	
 	function __toString() {
 		return print_r($this, true);
+	}
+	
+	// =====================================
+	// = Query options resolution function =
+	// =====================================
+	// accepts an array of names,
+	// each containing a default value and
+	// regex matching pattern for validation;
+
+	protected static function setDefaults($defaults, $options) {
+		foreach ($defaults as $name => $default) {
+			if (isset($options[$name])) {
+				if (isset($default['pattern'])) {
+					if (!preg_match($default['pattern'], $options[$name]))
+						unset($options[$name]);
+				}
+			} else {
+				if (isset($default['value']))
+					$options[$name] = $default['value'];
+			}
+		}
+		return $options;
 	}
 	
 	// ===========
