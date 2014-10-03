@@ -7,30 +7,38 @@ class Model extends Base {
 	static protected $tableName = null; // override this if you want a different table nam than the pluralized version of your class name
 	static protected $columns = ["*"]; // override this for speed performance
 	
-	//relations: [tableName => className]
-	static protected $hasMany = [];
+	// relations: [propertyName => className]
+	static protected $hasOne     = [];
+	static protected $hasMany    = [];
 	static protected $manyToMany = [];
 	
-	protected static function passiveProperties() {
-		$passProps = [
-			static::$primaryKey,
-			'created_at',
-			'updated_at',
-			'isNew'
-		];
-		
+	// propertios to ignore when saving
+	static $passiveProperties = [];
+	
+	protected function passiveProperties() {		
 		// exclude relations as well...
-		$passProps = array_merge($passProps, array_keys(static::$manyToMany));
-		
-		return $passProps;
+		// if not mysql with cry about invalid column references
+		return array_merge(
+			[ // default passive properties
+				static::$primaryKey,
+				'created_at',
+				'updated_at',
+				'isNew'
+			],
+			static::$passiveProperties, // user defined...
+			array_keys(static::$manyToMany)
+		);
 	}
 	
 	// if the static var tableName isn't set, figure out based on conventions
+	// class names should be singular capitalized camelcase
+	// table names should be plural lowercase with underscores
 	static function tableName() {
 		if (static::$tableName) return static::$tableName;
-		$tname = strtolower( get_called_class() );
-				
-		return static::plural($tname);
+		$tname = get_called_class();                             // get the class name
+		$tname = preg_replace("/(?<!^)([A-Z])/", "_$1", $tname); // convert camelcase to underscores
+		$tname = strtolower( $tname );                           // all lowercase
+		return static::plural($tname);                           // return the plural version
 	}
 	
 	// generate a query object that has the base columns and table select;
@@ -88,7 +96,7 @@ class Model extends Base {
 	static function findByName($array, $options = array()) {
 		// set up the default options
 		$options = self::setDefaults([
-			"sign" => ["value" => "=", "pattern" => "/^(=|<|>)$/"],
+			"sign" => ["value" => "=", "pattern" => "/^(=|<|>|LIKE)$/"],
 			"limit" => ["pattern" => "/\d+/"]
 		], $options);
 		
@@ -113,6 +121,14 @@ class Model extends Base {
 		if (count($result) == 1)
 			return current($result);
 		return $result;
+	}
+	
+	// ============================
+	// = Starting with a somthing =
+	// ============================
+	static function startingWith($letter) {
+		$letter = substr($letter, 0, 1);
+		return static::findByName(['name' => "$letter%"], ['sign' => "LIKE"]);
 	}
 	
 	// =================================================
@@ -189,7 +205,9 @@ class Model extends Base {
 	}
 	
 	function __construct($vars = array()) {
-		foreach ($vars as $property => $value) $this->$property = $value; // load all of the properties
+		foreach ($vars as $property => $value) {
+			if (!isset(static::$hasOne[$property])) $this->$property = $value; // load all of the properties
+		}
 		if (isset($this->{static::$primaryKey})) $this->isNew = false; // update the status of isNew...
 	}
 	
@@ -201,40 +219,66 @@ class Model extends Base {
 	function __get($prop) {
 		
 		// lazy load relations
+		if ( isset(static::$hasOne[$prop])     && !isset($this->$prop) ) $this->hasOne($prop);
 		if ( isset(static::$manyToMany[$prop]) && !isset($this->$prop) ) $this->manyToMany($prop);
 		if ( isset(static::$hasMany[$prop])    && !isset($this->$prop) ) $this->hasMany($prop);
 		
 		return parent::__get($prop);
 	}
+	
+	protected function hasOne($prop) {
+		$className = static::$hasOne[$prop];
+		$foreignTable = $className::tableName();
 		
-	protected function hasMany($foreignTable) {
-		$className = static::$hasMany[$foreignTable];
+		$fkColumn = static::singular($className::tableName());
+		
+		$query = $className::baseQuery();
+		$query->join("INNER JOIN `$this->tableName` ON `$this->tableName`.`$fkColumn` = `$foreignTable`.`{$className::$primaryKey}`");
+		$query->where("`$this->tableName`.`$this->primaryKeyName` = ?", [$this->primaryKey]);
+		$query->limit(1);
+				
+		$foreignObject = $className::query($query, $query->params, function($row) use ($className) {
+			return new $className($row);
+		});
+		if (empty($foreignObject)) {
+			$this->$prop = null;
+		} else {
+			$this->$prop = current($foreignObject);
+		}
+	}
+		
+	protected function hasMany($prop) {
+		$className = static::$hasMany[$prop];
+		$foreignTable = $className::tableName();
 		// select from the foreign table
 		$query = new Query($foreignTable);
 		// column name in foreign table is singular...
 		$cname = static::singular(static::tableName());
 		// get a 2d array where the primary key matches the value of this objcet's primary key
 		$query->select([$foreignTable => $className::$columns])->where("`$foreignTable`.`$cname` = ?", [$this->{static::$primaryKey}]);
-		$this->$foreignTable = $className::query($query, $query->params, function($row) use ($className) {
+		$this->$prop = $className::query($query, $query->params, function($row) use ($className) {
 			return new $className($row);
 		});
 	}
 	
-	protected function manyToMany($foreignTable) {
+	protected function manyToMany($prop, $extraColumns = array()) {
 		// get classname defined in the static $manyToMany (k/v) array
-		$className = static::$manyToMany[$foreignTable];
+		$className = static::$manyToMany[$prop];
+		$foreignTable = $className::tableName();
 		// get the proper order of tables as per naming convention for join table.
 		$joint = static::tableJoin($this->tableName, $foreignTable);
 		// query from the joint table
 		$query = new Query($joint);
 		// select only the columns from requested class
-		$query->select([$foreignTable => $className::$columns]);
+		$select = [$foreignTable => $className::$columns];
+		if (!empty($extraColumns)) $select[$joint] = $extraColumns; // add in additional columns
+		$query->select($select);
 		// join the requested class on the join table based on primary key
 		$query->join("INNER JOIN `{$className::tableName()}` ON `$joint`.`{$className::tableName()}` = `{$className::tableName()}`.`{$className::$primaryKey}`");
 		// limit to the primary key of this table
 		$query->where("`$joint`.`$this->tableName` = ?", [$this->primaryKey]);
 		// run the query and get back a 2d array, set to the requested prop
-		$this->$foreignTable = new ModelCollection(
+		$this->$prop = new ModelCollection(
 			$className::query(
 				$query,
 				$query->params,
@@ -254,8 +298,13 @@ class Model extends Base {
 	function toArray() {
 		$properties = [];
 		foreach ($this as $prop => $value) {
-			if (!in_array($prop, static::passiveProperties()))
-				$properties[$prop] = $value;
+			if (!in_array($prop, $this->passiveProperties())) {
+				if ($value instanceof Model) {
+					$properties[$prop] = $value->primaryKey;
+				} else {
+					$properties[$prop] = $value;
+				}
+			}
 		} 
 		return $properties;
 	}
@@ -267,7 +316,8 @@ class Model extends Base {
 		
 	function save() {
 		// insert if new
-		if ($this->isNew()) return $this->insert();
+		if ($this->isNew())
+			return $this->insert();
 		$query = new Query($this->tableName);
 		$query->update($this->tableName, $this->toArray())->where($this->primaryKeyName.' = ?', [$this->primaryKey])->limit(1);
 		$result = static::query($query, $query->params);
