@@ -126,9 +126,8 @@ class Model extends Base {
 	// ============================
 	// = Starting with a somthing =
 	// ============================
-	static function startingWith($letter) {
-		$letter = substr($letter, 0, 1);
-		return static::findByName(['name' => "$letter%"], ['sign' => "LIKE"]);
+	static function startingWith($prop, $letter) {
+		return static::findByName([$prop => "$letter%"], ['sign' => "LIKE"]);
 	}
 	
 	// =================================================
