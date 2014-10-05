@@ -81,7 +81,7 @@ class Base extends \Lx\Object{
 		
 		$stmt->execute();
 		$stmt->store_result();
-		if (self::$connection->error) return self::$connection->error;
+		if (self::$connection->error) throw new \Exception( self::$connection->error );
 		$md = $stmt->result_metadata();
 
 		$temp_result = array();

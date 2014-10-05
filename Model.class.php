@@ -225,7 +225,7 @@ class Model extends Base {
 		
 		// lazy load relations
 		if ( isset(static::$hasOne[$prop])     && !isset($this->$prop) ) $this->hasOne($prop);
-		if ( isset(static::$manyToMany[$prop]) && !isset($this->$prop) ) $this->manyToMany($prop, static::$richJoin[$prop]);
+		if ( isset(static::$manyToMany[$prop]) && !isset($this->$prop) ) $this->manyToMany($prop, @static::$richJoin[$prop]);
 		if ( isset(static::$hasMany[$prop])    && !isset($this->$prop) ) $this->hasMany($prop);
 		
 		return parent::__get($prop);
@@ -331,7 +331,7 @@ class Model extends Base {
 		$query = new Query($this->tableName);
 		$query->update($this->tableName, $this->toArray())->where($this->primaryKeyName.' = ?', [$this->primaryKey])->limit(1);
 		$result = static::query($query, $query->params);
-		return $result;
+		return (bool) $result;
 	}
 	
 	// =====================================================
@@ -353,8 +353,8 @@ class Model extends Base {
 		$pk = static::query($query, $query->params); // could return error;
 		$this->id = $pk;
 		if ($sync)
-			return $this->sync();
-		return $this;
+			$this->sync();
+		return true;
 	}
 	
 	function destroy() {

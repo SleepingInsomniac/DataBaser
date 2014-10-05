@@ -1,6 +1,7 @@
 <?php
 
-require "Object.class.php";
+require_once "Object.class.php";
+
 require "Base.class.php";
 require "Model.class.php";
 require "Query.class.php"; 
