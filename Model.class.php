@@ -119,8 +119,11 @@ class Model extends Base {
 	// =================
 	// = Select random =
 	// =================
-	static function random($limit = 1) {
-		$query = static::baseQuery()->orderBy("RAND()")->limit($limit);
+	static function random($limit = 1, $options = array()) {
+				
+		$query = static::baseQuery();
+		if (isset($options['where'])) $query->where($options['where']);
+		$query->orderBy("RAND()")->limit($limit);
 		$result = static::query($query, $query->params, function($row) {return new static($row);});
 		if (count($result) == 1)
 			return current($result);

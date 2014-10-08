@@ -66,7 +66,11 @@ class Base extends \Lx\Object{
 		if ($params && !$datatypes) $datatypes = static::dataTypes($params);
 		
 		$stmt = self::$connection->prepare($sql);
-		if (!$stmt) return self::$connection->error;
+		if (!$stmt) {
+			echo "<pre>";
+			echo $sql."\n";
+			throw new \Exception( self::$connection->error );
+		}
 		if ($params) {
 			$temp_params = array($datatypes); // add the datatypes
 			foreach($params as &$value) {
