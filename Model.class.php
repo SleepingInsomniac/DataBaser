@@ -56,7 +56,8 @@ class Model extends Base {
 	// = Create a new record =
 	// =======================
 	static function create($params = array()) {
-		$obj = new static($params);
+		$class = get_called_class();
+		$obj = new $class($params);
 		$obj->save();
 		return $obj;
 	}
@@ -77,8 +78,14 @@ class Model extends Base {
 	// ======================
 	static function all() {
 		$query = static::baseQuery();
-		$result = static::query($query, null, function($row) {return new static($row);});
-		// foreach ($result as &$row) $row = new static($row);
+		$class = get_called_class();
+		$result = static::query(
+			$query,
+			null,
+			function($row) use ($class) {
+				return new $class($row);
+			}
+		);
 		return $result;
 	}
 	
@@ -87,7 +94,14 @@ class Model extends Base {
 	// =============================================
 	static function find($id) {
 		$query = static::baseQuery()->where("id = ?", [$id]);
-		$result = static::query($query, $query->params, function($row) {return new static($row);});
+		$class = get_called_class();
+		$result = static::query(
+			$query,
+			$query->params,
+			function($row) use ($class) {
+				return new $class($row);
+			}
+		);
 		if (gettype($result) == "array")
 			return current($result);
 			
@@ -104,6 +118,7 @@ class Model extends Base {
 			"limit" => ["pattern" => "/\d+/"]
 		], $options);
 		
+		$class = get_called_class();
 		$query = static::baseQuery();
 		foreach ($array as $col => $val) {
 			$query->where("`".static::tableName()."`.$col {$options['sign']} ?", [$val]);
@@ -111,8 +126,14 @@ class Model extends Base {
 				$query->limit($options['limit']);
 			}
 		}
-		$result = static::query($query, $query->params);
-		foreach ($result as &$obj) $obj = new static($obj);
+		$result = static::query(
+			$query,
+			$query->params,
+			function($row) use ($class) {
+				return new $class($row);
+			}
+		);
+		// foreach ($result as &$obj) $obj = new $class($obj);
 		return $result;
 	}
 		
@@ -120,11 +141,20 @@ class Model extends Base {
 	// = Select random =
 	// =================
 	static function random($limit = 1, $options = array()) {
-				
 		$query = static::baseQuery();
+		$class = get_called_class();
+		
 		if (isset($options['where'])) $query->where($options['where']);
 		$query->orderBy("RAND()")->limit($limit);
-		$result = static::query($query, $query->params, function($row) {return new static($row);});
+
+		$result = static::query(
+			$query,
+			$query->params,
+			function($row) use ($class) {
+				return new $class($row);
+			}
+		);
+		
 		if (count($result) == 1)
 			return current($result);
 		return $result;
@@ -141,7 +171,15 @@ class Model extends Base {
 	// = Generate an array of objects based on raw SQL =
 	// =================================================
 	static function fromSQL($sql, $params = array(), $dataTypes = null) {
-		return static::query($sql, $params, function($row) { return new static($row); }, $dataTypes);
+		$class = get_called_class();
+		return static::query(
+			$sql,
+			$params,
+			function($row) use ($class) {
+				return new $class($row);
+			},
+			$dataTypes
+		);
 	}
 	
 	// ==============================
@@ -182,13 +220,18 @@ class Model extends Base {
 			$query->select([static::tableName() => static::$columns]); // select only the columns from this class
 			$t = static::tableName();
 			$pk = static::$primaryKey;
-			$query->join("INNER JOIN `$t` ON `$joint`.`$t` = `$t`.`$pk`"); // join the requested class on the join table based on primary key
-			$query->where("`$joint`.`{$model::tableName()}` = ?", [$pkValue]); // limit to the primary key of relation
+			$query
+				->join("INNER JOIN `$t` ON `$joint`.`$t` = `$t`.`$pk`") // join the requested class on the join table based on primary key
+				->where("`$joint`.`{$model::tableName()}` = ?", [$pkValue]); // limit to the primary key of relation
 			// run the query and get back a 2d array
-			return $model::query($query, $query->params, function($row) {
-				// convert array to object.
-				return new static($row);
-			});
+			$class = get_called_class();
+			return $model::query(
+				$query,
+				$query->params,
+				function($row) use ($class) {
+					return new $class($row);
+				}
+			);
 		}
 		
 		if (in_array(get_called_class(), $model::$hasMany)) {
@@ -205,10 +248,6 @@ class Model extends Base {
 	
 	private
 		$isNew = true; // tracks the new status of record
-	
-	static function factory($vars = array()) {
-		return new static($vars);
-	}
 	
 	function __construct($vars = array()) {
 		foreach ($vars as $property => $value) {
@@ -263,10 +302,16 @@ class Model extends Base {
 		// column name in foreign table is singular...
 		$cname = static::singular(static::tableName());
 		// get a 2d array where the primary key matches the value of this objcet's primary key
-		$query->select([$foreignTable => $className::$columns])->where("`$foreignTable`.`$cname` = ?", [$this->{static::$primaryKey}]);
-		$this->$prop = $className::query($query, $query->params, function($row) use ($className) {
-			return new $className($row);
-		});
+		$query
+			->select([$foreignTable => $className::$columns])
+			->where("`$foreignTable`.`$cname` = ?", [$this->{static::$primaryKey}]);
+		$this->$prop = $className::query(
+			$query,
+			$query->params,
+			function($row) use ($className) {
+				return new $className($row);
+			}
+		);
 	}
 	
 	protected function manyToMany($prop, $extraColumns = array()) {
