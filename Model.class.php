@@ -372,13 +372,14 @@ class Model extends Base {
 		return $this->isNew;
 	}
 		
-	function save() {
+	function save($sync = true) {
 		// insert if new
 		if ($this->isNew())
-			return $this->insert();
+			return $this->insert($sync);
 		$query = new Query($this->tableName);
 		$query->update($this->tableName, $this->toArray())->where($this->primaryKeyName.' = ?', [$this->primaryKey])->limit(1);
 		$result = static::query($query, $query->params);
+		if ($sync) $this->sync();
 		return (bool) $result;
 	}
 	
