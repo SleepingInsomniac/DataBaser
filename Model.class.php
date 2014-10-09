@@ -266,8 +266,10 @@ class Model extends Base {
 		// if ($value = parent::__get($prop)) return $value;
 		
 		// lazy load relations
+		
 		if ( isset(static::$hasOne[$prop])     && !isset($this->$prop) ) $this->hasOne($prop);
-		if ( isset(static::$manyToMany[$prop]) && !isset($this->$prop) ) $this->manyToMany($prop, @static::$richJoin[$prop]);
+		   ( isset(static::$richJoin[$prop]) ) ? $extraCols = static::$richJoin[$prop] : $extraCols = [];
+		if ( isset(static::$manyToMany[$prop]) && !isset($this->$prop) ) $this->manyToMany($prop, $extraCols);
 		if ( isset(static::$hasMany[$prop])    && !isset($this->$prop) ) $this->hasMany($prop);
 		
 		return parent::__get($prop);
