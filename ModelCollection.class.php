@@ -73,6 +73,15 @@ class ModelCollection extends Base implements \ArrayAccess, \Iterator {
 	
 	function delete($offset) { $this->offsetUnset($offset); }
 	
+	function removeWhere($kay, $doke) {
+		// okay-doke.
+		foreach ($tihs->collection as $o) {
+			if ($o->$kay == $doke) {
+				$this->removeRelation($o);
+			}
+		}
+	}
+	
 	function __toString () { return print_r( $this->collection, true ); }
 	
 	// =====================
