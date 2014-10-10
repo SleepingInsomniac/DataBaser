@@ -17,9 +17,9 @@ class Model extends Base {
 	static protected $richJoin = [];
 	
 	// propertios to ignore when saving
-	static $passiveProperties = [];
+	static $readOnly = [];
 	
-	protected function passiveProperties() {		
+	protected function readOnly() {		
 		// exclude relations as well...
 		// if not mysql with cry about invalid column references
 		return array_merge(
@@ -29,7 +29,7 @@ class Model extends Base {
 				'updated_at',
 				'isNew'
 			],
-			static::$passiveProperties, // user defined...
+			static::$readOnly, // user defined...
 			array_keys(static::$manyToMany)
 		);
 	}
@@ -357,7 +357,7 @@ class Model extends Base {
 		
 		if (!empty($extraColumns)) {
 			$select[$joint] = $extraColumns; // add in additional columns
-			static::$passiveProperties = array_merge(static::$passiveProperties, $extraColumns); // don't save these
+			static::$readOnly = array_merge(static::$readOnly, $extraColumns); // don't save these
 		}
 		
 		$query->select($select);
@@ -386,7 +386,7 @@ class Model extends Base {
 	function toArray() {
 		$properties = [];
 		foreach ($this as $prop => $value) {
-			if (!in_array($prop, $this->passiveProperties())) {
+			if (!in_array($prop, $this->readOnly())) {
 				if ($value instanceof Model) {
 					$properties[$prop] = $value->primaryKey;
 				} else {
