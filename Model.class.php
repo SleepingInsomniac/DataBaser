@@ -120,7 +120,8 @@ class Model extends Base {
 		]);
 		
 		foreach ($colvals as $col => &$val) {
-			$val = "%$val%"; // add the wildcards
+			if (!strstr($val, "%")) // if they didn't define wildcards themselves...
+				$val = "%$val%"; // add the wildcards
 			$query->where("`$tname`.`$col` LIKE ?", [$val]); // append the filter
 		}
 		
