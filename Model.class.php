@@ -108,15 +108,42 @@ class Model extends Base {
 		return $result;
 	}
 	
+	// =======================
+	// = Search for a record =
+	// =======================
+	static function search($colvals = array(), $opts = array()) {
+		$query = static::baseQuery();
+		$tname = static::tableName();
+		
+		self::setDefaults($opts, [
+			"limit" => ["pattern" => "/\d+/"]
+		]);
+		
+		foreach ($colvals as $col => &$val) {
+			$val = "%$val%"; // add the wildcards
+			$query->where("`$tname`.`$col` LIKE ?", [$val]); // append the filter
+		}
+		
+		if (isset($opts['limit'])) {
+			$query->limit($opts['limit']); // if limit is set, limit it.
+		}
+		
+		$class = get_called_class();
+		return static::query($query, $query->params, function($row) use ($class) {
+			return new $class($row);
+		});
+		
+	}
+	
 	// ==============================================
 	// = Find where column name (equals/sign) value =
 	// ==============================================
 	static function findByName($array, $options = array()) {
 		// set up the default options
-		$options = self::setDefaults([
+		self::setDefaults($options, [
 			"sign" => ["value" => "=", "pattern" => "/^(=|<|>|LIKE)$/"],
 			"limit" => ["pattern" => "/\d+/"]
-		], $options);
+		]);
 		
 		$class = get_called_class();
 		$query = static::baseQuery();
@@ -425,7 +452,7 @@ class Model extends Base {
 	// each containing a default value and
 	// regex matching pattern for validation;
 
-	protected static function setDefaults($defaults, $options) {
+	protected static function setDefaults(&$options, $defaults) {
 		foreach ($defaults as $name => $default) {
 			if (isset($options[$name])) {
 				if (isset($default['pattern'])) {
@@ -437,7 +464,7 @@ class Model extends Base {
 					$options[$name] = $default['value'];
 			}
 		}
-		return $options;
+		// return $options;
 	}
 	
 	// ===========
