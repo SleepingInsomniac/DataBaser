@@ -69,19 +69,33 @@ class Query extends \Lx\Object {
 		return $this->appendStmt('join', $sql, $params);
 	}
 	
+	// =========
+	// = Where =
+	// =========
 	function where($sql, $params = null) {
 		isset($this->stmts['where']) ? $sql = "AND $sql" : $sql = "WHERE $sql";
 		return $this->appendStmt('where', $sql, $params);
 	}
-		
-	function andWhere($sql, $params = null) { return $this->appendStmt('where', "AND $sql", $params); }
-	function orWhere ($sql, $params = null) { return $this->appendStmt('where', "OR $sql", $params); }
+	function andWhere($sql, $params = null) {
+		isset($this->stmts['where']) ? $sql = "AND $sql" : $sql = "WHERE $sql";
+		return $this->appendStmt('where', $sql, $params);
+	}
+	function orWhere ($sql, $params = null) {
+		isset($this->stmts['where']) ? $sql = "OR $sql" : $sql = "WHERE $sql";
+		return $this->appendStmt('where', $sql, $params);
+	}
 	
+	// =========
+	// = Limit =
+	// =========
 	function limit($count) {
 		$this->appendStmt('limit', "LIMIT ?", [$count]);
 		return $this;
 	}
 	
+	// ===========
+	// = OrderBy =
+	// ===========
 	function orderBy($column, $direction = "") {
 				
 		if (isset($this->stmts['orderBy']) == 0)
@@ -92,6 +106,9 @@ class Query extends \Lx\Object {
 		return $this;
 	}
 	
+	// ========================================================================================================
+	// = Convert the statements into a string, automatically called when implicit string conversion is called =
+	// ========================================================================================================
 	function render() {
 		$sql = array();
 		foreach ($this->stmts as $type => $stmts) {
