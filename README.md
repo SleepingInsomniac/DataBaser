@@ -43,7 +43,7 @@ $doctor->save(); // update the database record;
 ```
 
 #Many to many relations:
-Define in the $manyToMany class array: (table => class)
+Define in the $manyToMany class array with the property name pointing to the class: (property => class)
 ```php
 class Tool extends Dbaser\Model {
 	static $manyToMany = ['doctors' => 'Doctor'];
@@ -76,14 +76,31 @@ $doc->tools->push($hammer); // Doctor with id of 1 now has a hammer.
 
 ```
 
-#Has one relations:
-Best to define getters:
+#Many to many with rich joins
+A rich join is when there are shared values between related objects.
+For example a doctor with different procedure costs.
+
+use the $richJoin array ('property' => [...cols...])
+```php
+class Doctor extends Dbaser\Model {
+	static protected $manyToMany = ['procedures' => 'Procedure'];
+	static protected $richJoin = ['procedures' => ['price']];
+}
+
+$doc = Doctor::find(1); // find doctor pk 1
+$procedures = $doc->procedures; // get all related procedures in collection
+
+$price_1 = $procedures[0]->price; // get the price as it relates to the first procedure of doctor 1
+
+```
+
+
+#Has one/has many relations:
+works the same way, except the column in the db should reflect the property name.
+in the case of a has many relation, there is no column in the table.
 ```php
 class Doctors extends Dbaser\Model {
-	function getLicense () {
-		if ($this->license instanceof Dbaser\Model) return $this->license;
-		$this->license = License::find($this->lincense);
-		return $this->lincense;
-	}
+	static protected $hasOne     = ['nurse' => 'Nurse']; // prop => class
+	static protected $hasMany    = ['bosses' => 'Boss']; // prop => class
 }
 ```

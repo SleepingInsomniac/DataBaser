@@ -48,12 +48,17 @@ class Base extends \Lx\Object{
 	// =============================================
 	// = Rules for naming convention resolution... =
 	// =============================================
+	// in some cases this function isn't enough, but it does a pretty good generalized job.
+	// If you're concerned about naming, (ex. woman -> women) overwrite the
+	// 'static protected $tableName' value in your Dbaser\Model subclass
 	static protected function plural($string) {
 		$string = preg_replace("/y$/i", "ie", $string); // substitute y for ie and append s
+		$string = preg_replace("/s$/i", "se", $string); // substitute s for se and append s
 		return $string . "s";
 	}
 	static protected function singular($string) {
 		$string = preg_replace("/ies$/i", "y", $string);
+		$string = preg_replace("/es$/i", "s", $string);
 		$string = preg_replace("/s$/i", "", $string);
 		return $string;
 	}
