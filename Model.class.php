@@ -76,12 +76,22 @@ class Model extends Base {
 	// ======================
 	// = Return all records =
 	// ======================
-	static function all() {
+	static function all($opts = array()) {
 		$query = static::baseQuery();
+		
+		self::setDefaults($opts, [
+			"orderBy" => ["pattern" => "/^[a-z_]+$/i"],
+			"direction" => ['pattern' => "/ASC|DESC/i"]
+		]);
+		
+		if (isset($opts['orderBy'])) $query->orderBy($opts['orderBy'], $opts['direction']);
+		if (isset($opts['limit']))   $query->limit($opts['limit']);
+		if (isset($opts['offset']))  $query->offset($opts['offset']);
+		
 		$class = get_called_class();
 		$result = static::query(
 			$query,
-			null,
+			$query->params,
 			function($row) use ($class) {
 				return new $class($row);
 			}
@@ -93,7 +103,9 @@ class Model extends Base {
 	// = Find singular record based on primary key =
 	// =============================================
 	static function find($id) {
+		
 		$query = static::baseQuery()->where("id = ?", [$id]);
+		
 		$class = get_called_class();
 		$result = static::query(
 			$query,
