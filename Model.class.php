@@ -81,7 +81,10 @@ class Model extends Base {
 		
 		self::setDefaults($opts, [
 			"orderBy" => ["pattern" => "/^[a-z_]+$/i"],
-			"direction" => ['pattern' => "/ASC|DESC/i"]
+			"direction" => [
+				'pattern' => "/ASC|DESC/i",
+				'value' => 'ASC'
+			]
 		]);
 		
 		if (isset($opts['orderBy'])) $query->orderBy($opts['orderBy'], $opts['direction']);
