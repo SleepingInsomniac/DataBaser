@@ -17,7 +17,7 @@ class Inflector {
 	static $pluralRules = [
 		
 		"/y$/i" => "ies", // ends in y
-		"/(ss)/i" => "$1es", // ends in ss
+		"/(ss)$/i" => "$1es", // ends in ss
 		"/([^aeious])$/i" => "$1s" // ends in non-vowel
 		
 	];
