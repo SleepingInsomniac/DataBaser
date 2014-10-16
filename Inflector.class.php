@@ -13,12 +13,15 @@ class Inflector {
 		
 	}
 	
-		
+	
 	static $pluralRules = [
 		
-		"/y$/i" => "ies", // ends in y
-		"/(ss)$/i" => "$1es", // ends in ss
-		"/([^aeious])$/i" => "$1s" // ends in non-vowel
+		// irregulars
+		"/person/i" => "people",
+		
+		"/([^aoieu])y$/i" => "$1ies",    // ends in y
+		"/(ss|sh|ch|dg)e?$/i" => "$1es", //ends in something requiring an es
+		"/(.)$/i" => "$1s"               // append s
 		
 	];
 	
@@ -29,9 +32,12 @@ class Inflector {
 	
 	static $singularRules = [
 		
-		"/ies$/i" => "y",
-		"/(ss)es$/i" => "$1",
-		"/s$/i" => ""
+		// irregulars
+		"/people/i" => "person",
+		
+		"/ies$/i" => "y",               // convert ies to y
+		"/(ss|sh|che|dge)s$/i" => "$1", // convert back
+		"/s$/i" => ""                   // trim off trailling s
 		
 	];
 	

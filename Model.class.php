@@ -311,7 +311,7 @@ class Model extends Base {
 		// lazy load relations
 		
 		if ( isset(static::$hasOne[$prop])     && !isset($this->$prop) ) $this->hasOne($prop);
-		   ( isset(static::$richJoin[$prop]) ) ? $extraCols = static::$richJoin[$prop] : $extraCols = [];
+		   ( isset(static::$richJoin[$prop]) ) ? $extraCols = (array) static::$richJoin[$prop] : $extraCols = [];
 		if ( isset(static::$manyToMany[$prop]) && !isset($this->$prop) ) $this->manyToMany($prop, $extraCols);
 		if ( isset(static::$hasMany[$prop])    && !isset($this->$prop) ) $this->hasMany($prop);
 		
