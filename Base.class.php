@@ -52,15 +52,10 @@ class Base extends \Lx\Object{
 	// If you're concerned about naming, (ex. woman -> women) overwrite the
 	// 'static protected $tableName' value in your Dbaser\Model subclass
 	static protected function plural($string) {
-		$string = preg_replace("/y$/i", "ie", $string); // substitute y for ie and append s
-		$string = preg_replace("/s$/i", "se", $string); // substitute s for se and append s
-		return $string . "s";
+		return Wordmorph::plural($string);
 	}
 	static protected function singular($string) {
-		$string = preg_replace("/ies$/i", "y", $string);
-		$string = preg_replace("/es$/i", "s", $string);
-		$string = preg_replace("/s$/i", "", $string);
-		return $string;
+		return Wordmorph::singular($string);
 	}
 	
 	// ==============================================================

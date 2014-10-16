@@ -34,7 +34,7 @@ class Doctor extends Dbaser\Model {
 }
 ```
 
-Now preform some methods with that class...
+Now perform some methods with that class...
 
 ```php
 $doctor = Doctor::find(1); // find a doctor with primary key that equals 1

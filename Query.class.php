@@ -32,11 +32,15 @@ class Query extends \Lx\Object {
 	
 	function select($tables, $distinct = false) {
 		($distinct) ? $type = "select distinct" : $type = 'select';
-		$stmts = array();
-		foreach ($tables as $table => $cols) {
-			$stmts[] = " `$table`.". implode($cols, ", `$table`.");
+		if (gettype($tables) == 'array') {
+			$stmts = array();
+			foreach ($tables as $table => $cols) {
+				$stmts[] = " `$table`.". implode($cols, ", `$table`.");
+			}
+			$this->appendStmt($type, implode($stmts, ","));
+		} else {
+			$this->appendStmt($type, $tables);
 		}
-		$this->appendStmt($type, implode($stmts, ","));
 		
 		return $this;
 	}
