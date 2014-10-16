@@ -4,7 +4,7 @@ namespace Dbaser;
 class Model extends Base {
 	
 	static protected $primaryKey = 'id';
-	static protected $tableName = null; // override this if you want a different table nam than the pluralized version of your class name
+	static protected $tableName = null; // override this if you want a different table name than the pluralized version of your class name
 	static protected $columns = ["*"]; // override this for speed performance
 	
 	// relations: [propertyName => className]

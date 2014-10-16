@@ -52,10 +52,10 @@ class Base extends \Lx\Object{
 	// If you're concerned about naming, (ex. woman -> women) overwrite the
 	// 'static protected $tableName' value in your Dbaser\Model subclass
 	static protected function plural($string) {
-		return Wordmorph::plural($string);
+		return Inflector::plural($string);
 	}
 	static protected function singular($string) {
-		return Wordmorph::singular($string);
+		return Inflector::singular($string);
 	}
 	
 	// ==============================================================
