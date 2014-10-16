@@ -1,5 +1,5 @@
 <?php
-namespace Lx;
+namespace Dbaser;
 
 class Object {
 		

@@ -1,7 +1,7 @@
 <?php
 namespace Dbaser;
 
-class Base extends \Lx\Object{
+class Base extends Object {
 	protected static $connection;
 	
 	// ==================================================

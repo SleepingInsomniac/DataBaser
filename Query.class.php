@@ -1,7 +1,7 @@
 <?php
 namespace Dbaser;
 
-class Query extends \Lx\Object {
+class Query extends Object {
 	
 	protected
 		$from = array(),
