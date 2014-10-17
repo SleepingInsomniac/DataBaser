@@ -189,6 +189,8 @@ class Model extends Base {
 		
 		if (isset($options['where'])) $query->where($options['where']);
 		$query->orderBy("RAND()")->limit($limit);
+		if (isset($options['limit'])) $query->limit($options['limit']);
+		if (isset($options['offset'])) $query->offset($options['offset']);
 
 		$result = static::query(
 			$query,
