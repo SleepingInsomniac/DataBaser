@@ -252,6 +252,8 @@ class Model extends Base {
 	// = get by relation =
 	// ===================
 	static function byRelation($model, $pkValue = null) {
+		$class = get_called_class();
+		
 		// if a model object is passed in, we can extrapolate the values from that.
 		if ($model instanceof Dbaser\Model) {
 			$model = $model->className;
@@ -269,7 +271,6 @@ class Model extends Base {
 				->join("INNER JOIN `$t` ON `$joint`.`$t` = `$t`.`$pk`") // join the requested class on the join table based on primary key
 				->where("`$joint`.`{$model::tableName()}` = ?", [$pkValue]); // limit to the primary key of relation
 			// run the query and get back a 2d array
-			$class = get_called_class();
 			return $model::query(
 				$query,
 				$query->params,
@@ -279,8 +280,16 @@ class Model extends Base {
 			);
 		}
 		
-		if (in_array(get_called_class(), $model::$hasMany)) {
+		
+		
+		if (in_array($class, $model::$hasMany)) {
 			return static::findByName([static::singular($model) => $pkValue]);
+		}
+		
+		if (in_array($class, $model::$hasOne)) {
+			$proxy = new $model([$model::$primaryKey => $pkValue]); // create an object of type relation
+			$prop = array_search($class, $model::$hasOne);
+			return $proxy->$prop; // ask the model for it's relation of this class's type
 		}
 		
 		// at this point all else has failed.
