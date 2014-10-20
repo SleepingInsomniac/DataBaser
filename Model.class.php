@@ -404,6 +404,10 @@ class Model extends Base {
 		);
 	}
 	
+	function load ($propertyName) {
+		return (bool) $this->$propertyName;
+	}
+	
 	// ========================
 	// = end relation methods =
 	// ========================
