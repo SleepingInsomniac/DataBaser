@@ -61,7 +61,7 @@ class Base extends Object {
 	// ==============================================================
 	// = This function talks to the mysqli object and gets the data =
 	// ==============================================================
-	protected static function query($sql, $params = null, $rowCallback = null, $datatypes = null) {
+	static function query($sql, $params = null, $rowCallback = null, $datatypes = null) {
 		// if datatypes aren't provided, figure them out.
 		if ($params && !$datatypes) $datatypes = static::dataTypes($params);
 		

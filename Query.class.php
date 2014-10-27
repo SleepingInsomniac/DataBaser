@@ -97,6 +97,14 @@ class Query extends Object {
 		return $this;
 	}
 	
+	// ==========
+	// = Offset =
+	// ==========
+	function offset($count) {
+		$this->appendStmt('offset', "OFFSET ?", [$count]);
+		return $this;
+	}
+	
 	// ===========
 	// = OrderBy =
 	// ===========
