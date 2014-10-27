@@ -75,7 +75,7 @@ class ModelCollection extends Base implements \ArrayAccess, \Iterator {
 	
 	function removeWhere($kay, $doke) {
 		// okay-doke.
-		foreach ($tihs->collection as $o) {
+		foreach ($this->collection as $o) {
 			if ($o->$kay == $doke) {
 				$this->removeRelation($o);
 			}
