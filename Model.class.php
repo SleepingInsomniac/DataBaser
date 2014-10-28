@@ -80,16 +80,16 @@ class Model extends Base {
 		$query = static::baseQuery();
 		
 		self::setDefaults($opts, [
-			"orderBy" => ["pattern" => "/^[a-z_]+$/i"],
 			"direction" => [
 				'pattern' => "/ASC|DESC/i",
 				'value' => 'ASC'
 			]
 		]);
 		
-		if (isset($opts['orderBy'])) $query->orderBy($opts['orderBy'], $opts['direction']);
-		if (isset($opts['limit']))   $query->limit($opts['limit']);
-		if (isset($opts['offset']))  $query->offset($opts['offset']);
+		if (isset($opts['where']))   $query->where(   $opts['where']);
+		if (isset($opts['orderBy'])) $query->orderBy( $opts['orderBy']);
+		if (isset($opts['limit']))   $query->limit(   $opts['limit']);
+		if (isset($opts['offset']))  $query->offset(  $opts['offset']);
 		
 		$class = get_called_class();
 		$result = static::query(
@@ -99,6 +99,7 @@ class Model extends Base {
 				return new $class($row);
 			}
 		);
+		// if (count($result) == 1) $result = current($result);
 		return $result;
 	}
 	
@@ -251,8 +252,17 @@ class Model extends Base {
 	// ===================
 	// = get by relation =
 	// ===================
-	static function byRelation($model, $pkValue = null) {
+	static function byRelation($model, $pkValue = null, $options = array()) {
 		$class = get_called_class();
+		
+		self::setDefaults($opts, [
+			"direction" => [
+				'pattern' => "/ASC|DESC/i",
+				'value' => 'ASC'
+			],
+			"limit"  => ['pattern' => "/^\d+$/"],
+			"offset" => ['pattern' => "/^\d+$/"]
+		]);
 		
 		// if a model object is passed in, we can extrapolate the values from that.
 		if ($model instanceof Dbaser\Model) {
@@ -271,6 +281,12 @@ class Model extends Base {
 				->join("INNER JOIN `$t` ON `$joint`.`$t` = `$t`.`$pk`") // join the requested class on the join table based on primary key
 				->where("`$joint`.`{$model::tableName()}` = ?", [$pkValue]); // limit to the primary key of relation
 			// run the query and get back a 2d array
+			
+			if (isset($options['where']))   $query->where(   $options['where']  );
+			if (isset($options['orderBy'])) $query->orderBy( $options['orderBy']);
+			if (isset($options['limit']))   $query->limit(   $options['limit']  );
+			if (isset($options['offset']))  $query->offset(  $options['offset'] );
+			
 			return $model::query(
 				$query,
 				$query->params,
@@ -283,7 +299,7 @@ class Model extends Base {
 		
 		
 		if (in_array($class, $model::$hasMany)) {
-			return static::findByName([static::singular($model) => $pkValue]);
+			return static::findByName([static::singular($model) => $pkValue], $options);
 		}
 		
 		if (in_array($class, $model::$hasOne)) {
@@ -351,7 +367,23 @@ class Model extends Base {
 	}
 		
 	protected function hasMany($prop) {
-		$className = static::$hasMany[$prop];
+		if (gettype(static::$hasMany[$prop]) == 'array') {
+			$className = static::$hasMany[$prop]['class'];
+			if (isset(static::$hasMany[$prop]['options'])) {
+				
+				$options = self::setDefaults($hasMany[$prop]['options'], [
+					"direction" => [
+						'pattern' => "/ASC|DESC/i",
+						'value' => 'ASC'
+					],
+					"limit"  => ['pattern' => "/^\d+$/"],
+					"offset" => ['pattern' => "/^\d+$/"]
+				]);
+		
+			}
+		} else {
+			$className = static::$hasMany[$prop];
+		}
 		$foreignTable = $className::tableName();
 		// select from the foreign table
 		$query = new Query($foreignTable);
@@ -361,6 +393,12 @@ class Model extends Base {
 		$query
 			->select([$foreignTable => $className::$columns])
 			->where("`$foreignTable`.`$cname` = ?", [$this->{static::$primaryKey}]);
+		
+		if (isset($options['where']))   $query->where(   $options['where']  );
+		if (isset($options['orderBy'])) $query->orderBy( $options['orderBy']);
+		if (isset($options['limit']))   $query->limit(   $options['limit']  );
+		if (isset($options['offset']))  $query->offset(  $options['offset'] );
+		
 		$this->$prop = $className::query(
 			$query,
 			$query->params,
@@ -371,8 +409,27 @@ class Model extends Base {
 	}
 	
 	protected function manyToMany($prop, $extraColumns = array()) {
-		// get classname defined in the static $manyToMany (k/v) array
-		$className = static::$manyToMany[$prop];
+		if (gettype(static::$manyToMany[$prop]) == 'array') {
+			$className = static::$manyToMany[$prop]['class'];
+			if (isset(static::$manyToMany[$prop]['options'])) {
+				
+				$options = static::$manyToMany[$prop]['options'];
+				
+				self::setDefaults($options, [
+					"direction" => [
+						'pattern' => "/ASC|DESC/i",
+						'value' => 'ASC'
+					],
+					"limit"  => ['pattern' => "/^\d+$/"],
+					"offset" => ['pattern' => "/^\d+$/"]
+				]);
+				
+			}
+		} else {
+			// get classname defined in the static $manyToMany (k/v) array
+			$className = static::$manyToMany[$prop];
+		}
+		
 		$foreignTable = $className::tableName();
 		// get the proper order of tables as per naming convention for join table.
 		$joint = static::tableJoin($this->tableName, $foreignTable);
@@ -392,6 +449,12 @@ class Model extends Base {
 		// limit to the primary key of this table
 		$query->where("`$joint`.`$this->tableName` = ?", [$this->primaryKey]);
 		// run the query and get back a 2d array, set to the requested prop
+		
+		if (isset($options['where']))   $query->where(   $options['where']  );
+		if (isset($options['orderBy'])) $query->orderBy( $options['orderBy']);
+		if (isset($options['limit']))   $query->limit(   $options['limit']  );
+		if (isset($options['offset']))  $query->offset(  $options['offset'] );
+				
 		$this->$prop = new ModelCollection(
 			$className::query(
 				$query,
@@ -495,7 +558,7 @@ class Model extends Base {
 					$options[$name] = $default['value'];
 			}
 		}
-		// return $options;
+		return $options;
 	}
 	
 	// ===========

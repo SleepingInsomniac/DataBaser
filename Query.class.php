@@ -77,6 +77,14 @@ class Query extends Object {
 	// = Where =
 	// =========
 	function where($sql, $params = null) {
+		if (gettype($sql) == 'array') {
+			$cols = array();
+			foreach ($sql as $col => $val) {
+				$cols[] = "`$col` = $val";
+			}
+			$sql = implode($cols, " AND ");
+		}
+		
 		isset($this->stmts['where']) ? $sql = "AND $sql" : $sql = "WHERE $sql";
 		return $this->appendStmt('where', $sql, $params);
 	}
@@ -108,12 +116,22 @@ class Query extends Object {
 	// ===========
 	// = OrderBy =
 	// ===========
-	function orderBy($column, $direction = "") {
-				
-		if (isset($this->stmts['orderBy']) == 0)
-			$column = "ORDER BY $column";
+	function orderBy($columns, $direction = "") {
 		
-		$this->appendStmt('orderBy', "$column $direction");
+		if (gettype($columns) == 'array') {
+			$cols = array();
+			foreach ($columns as $col => $dir) {
+				$cols[] = "`$col` $dir";
+			}
+			$cols = implode($cols, ",");
+		} else {
+			$cols = "$columns $direction";
+		}
+		
+		if (!isset($this->stmts['orderBy']))
+			$cols = "ORDER BY $cols";
+		
+		$this->appendStmt('orderBy', "$cols");
 
 		return $this;
 	}
