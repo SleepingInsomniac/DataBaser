@@ -87,7 +87,7 @@ class Model extends Base {
 		]);
 		
 		if (isset($opts['where']))   $query->where(   $opts['where']);
-		if (isset($opts['orderBy'])) $query->orderBy( $opts['orderBy']);
+		if (isset($opts['orderBy'])) $query->orderBy( $opts['orderBy'], $opts['direction']);
 		if (isset($opts['limit']))   $query->limit(   $opts['limit']);
 		if (isset($opts['offset']))  $query->offset(  $opts['offset']);
 		
@@ -295,9 +295,7 @@ class Model extends Base {
 				}
 			);
 		}
-		
-		
-		
+				
 		if (in_array($class, $model::$hasMany)) {
 			return static::findByName([static::singular($model) => $pkValue], $options);
 		}
@@ -309,6 +307,44 @@ class Model extends Base {
 		}
 		
 		// at this point all else has failed.
+		return false;
+	}
+	
+	// ====================
+	// = Get the last row =
+	// ====================
+	static function last() {
+		
+		$query = static::baseQuery()
+			->orderBy(static::$primaryKey, "DESC")
+			->limit(1);
+		
+		$class = get_called_class();
+		$result = static::query(
+			$query,
+			$query->params,
+			function($row) use ($class) {
+				return new $class($row);
+			}
+		);
+		if (gettype($result) == "array")
+			return current($result);
+			
+		return $result;
+		
+	}
+	static function lastKey() {
+		
+		$tname = static::tableName();
+		$query = new Query($tname);
+		$query->select([$tname => [static::$primaryKey]])
+			->orderBy(static::$primaryKey, "DESC")
+			->limit(1);
+		
+		$result = static::query($query, $query->params);
+		if (count($result) > 0)
+			return current($result)[static::$primaryKey];
+		
 		return false;
 	}
 	

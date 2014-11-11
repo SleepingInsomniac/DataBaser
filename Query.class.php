@@ -76,11 +76,12 @@ class Query extends Object {
 	// =========
 	// = Where =
 	// =========
-	function where($sql, $params = null) {
+	function where($sql, $params = []) {
 		if (gettype($sql) == 'array') {
 			$cols = array();
 			foreach ($sql as $col => $val) {
-				$cols[] = "`$col` = $val";
+				$cols[] = "`$col` = ?";
+				$params[] = $val;
 			}
 			$sql = implode($cols, " AND ");
 		}
