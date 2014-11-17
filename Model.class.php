@@ -158,7 +158,7 @@ class Model extends Base {
 	static function findByName($array, $options = array()) {
 		// set up the default options
 		self::setDefaults($options, [
-			"sign" => ["value" => "=", "pattern" => "/^(=|<|>|LIKE)$/"],
+			"sign" => ["value" => "=", "pattern" => "/^(=|<|>|LIKE)+$/"],
 			"limit" => ["pattern" => "/\d+/"]
 		]);
 		
@@ -184,12 +184,12 @@ class Model extends Base {
 	// =================
 	// = Select random =
 	// =================
-	static function random($limit = 1, $options = array()) {
+	static function random($options = array()) {
 		$query = static::baseQuery();
 		$class = get_called_class();
 		
 		if (isset($options['where'])) $query->where($options['where']);
-		$query->orderBy("RAND()")->limit($limit);
+		$query->orderBy("RAND()");
 		if (isset($options['limit'])) $query->limit($options['limit']);
 		if (isset($options['offset'])) $query->offset($options['offset']);
 
