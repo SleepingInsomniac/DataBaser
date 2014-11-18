@@ -155,9 +155,9 @@ class Model extends Base {
 	// ==============================================
 	// = Find where column name (equals/sign) value =
 	// ==============================================
-	static function findByName($array, $options = array()) {
+	static function findByName($array, $opts = array()) {
 		// set up the default options
-		self::setDefaults($options, [
+		self::setDefaults($opts, [
 			"sign" => ["value" => "=", "pattern" => "/^(=|<|>|LIKE)+$/"],
 			"limit" => ["pattern" => "/\d+/"]
 		]);
@@ -165,11 +165,13 @@ class Model extends Base {
 		$class = get_called_class();
 		$query = static::baseQuery();
 		foreach ($array as $col => $val) {
-			$query->where("`".static::tableName()."`.$col {$options['sign']} ?", [$val]);
-			if (isset($options['limit'])) {
-				$query->limit($options['limit']);
-			}
+			$query->where("`".static::tableName()."`.$col {$opts['sign']} ?", [$val]);
 		}
+		
+		if (isset($opts['orderBy'])) $query->orderBy( $opts['orderBy'], $opts['direction']);
+		if (isset($opts['limit']))   $query->limit(   $opts['limit']);
+		if (isset($opts['offset']))  $query->offset(  $opts['offset']);
+		
 		$result = static::query(
 			$query,
 			$query->params,
