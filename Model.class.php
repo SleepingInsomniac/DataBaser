@@ -285,7 +285,7 @@ class Model extends Base {
 			// run the query and get back a 2d array
 			
 			if (isset($options['where']))   $query->where(   $options['where']  );
-			if (isset($options['orderBy'])) $query->orderBy( $options['orderBy']);
+			if (isset($options['orderBy'])) $query->orderBy( $options['orderBy'], @$options['direction']);
 			if (isset($options['limit']))   $query->limit(   $options['limit']  );
 			if (isset($options['offset']))  $query->offset(  $options['offset'] );
 			

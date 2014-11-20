@@ -126,7 +126,10 @@ class Query extends Object {
 			}
 			$cols = implode($cols, ",");
 		} else {
-			$cols = "$columns $direction";
+			if (!preg_match("/\\)$/", $columns)) $cols = "`$columns` $direction";
+			else $cols = "$columns $direction";
+			// $cols = "`" . implode("` `", preg_split("/\s/i", $columns)) . "` $direction";
+			// $cols = "`$columns` $direction";
 		}
 		
 		if (!isset($this->stmts['orderBy']))
