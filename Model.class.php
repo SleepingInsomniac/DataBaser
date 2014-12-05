@@ -73,6 +73,19 @@ class Model extends Base {
 		static::query($query, $query->params);
 	}
 	
+	
+	// ================================
+	// = Apply the options to a query =
+	// ================================
+	static protected function applyOptions(&$query, $options) {
+		
+		if (isset($options['where']))   $query->where(   $options['where']  );
+		if (isset($options['orderBy'])) $query->orderBy( $options['orderBy'], @$options['direction']);
+		if (isset($options['limit']))   $query->limit(   $options['limit']  );
+		if (isset($options['offset']))  $query->offset(  $options['offset'] );
+		
+	}
+	
 	// ======================
 	// = Return all records =
 	// ======================
@@ -86,10 +99,7 @@ class Model extends Base {
 			]
 		]);
 		
-		if (isset($opts['where']))   $query->where(   $opts['where']);
-		if (isset($opts['orderBy'])) $query->orderBy( $opts['orderBy'], $opts['direction']);
-		if (isset($opts['limit']))   $query->limit(   $opts['limit']);
-		if (isset($opts['offset']))  $query->offset(  $opts['offset']);
+		self::applyOptions($query, $opts);
 		
 		$class = get_called_class();
 		$result = static::query(
@@ -168,9 +178,7 @@ class Model extends Base {
 			$query->where("`".static::tableName()."`.$col {$opts['sign']} ?", [$val]);
 		}
 		
-		if (isset($opts['orderBy'])) $query->orderBy( $opts['orderBy'], $opts['direction']);
-		if (isset($opts['limit']))   $query->limit(   $opts['limit']);
-		if (isset($opts['offset']))  $query->offset(  $opts['offset']);
+		self::applyOptions($query, $opts);
 		
 		$result = static::query(
 			$query,
@@ -257,7 +265,7 @@ class Model extends Base {
 	static function byRelation($model, $pkValue = null, $options = array()) {
 		$class = get_called_class();
 		
-		self::setDefaults($opts, [
+		$options = self::setDefaults($options, [
 			"direction" => [
 				'pattern' => "/ASC|DESC/i",
 				'value' => 'ASC'
@@ -284,10 +292,7 @@ class Model extends Base {
 				->where("`$joint`.`{$model::tableName()}` = ?", [$pkValue]); // limit to the primary key of relation
 			// run the query and get back a 2d array
 			
-			if (isset($options['where']))   $query->where(   $options['where']  );
-			if (isset($options['orderBy'])) $query->orderBy( $options['orderBy'], @$options['direction']);
-			if (isset($options['limit']))   $query->limit(   $options['limit']  );
-			if (isset($options['offset']))  $query->offset(  $options['offset'] );
+			self::applyOptions($query, $options);
 			
 			return $model::query(
 				$query,
@@ -409,7 +414,7 @@ class Model extends Base {
 			$className = static::$hasMany[$prop]['class'];
 			if (isset(static::$hasMany[$prop]['options'])) {
 				
-				$options = self::setDefaults($hasMany[$prop]['options'], [
+				$options = self::setDefaults(static::$hasMany[$prop]['options'], [
 					"direction" => [
 						'pattern' => "/ASC|DESC/i",
 						'value' => 'ASC'
@@ -432,10 +437,7 @@ class Model extends Base {
 			->select([$foreignTable => $className::$columns])
 			->where("`$foreignTable`.`$cname` = ?", [$this->{static::$primaryKey}]);
 		
-		if (isset($options['where']))   $query->where(   $options['where']  );
-		if (isset($options['orderBy'])) $query->orderBy( $options['orderBy']);
-		if (isset($options['limit']))   $query->limit(   $options['limit']  );
-		if (isset($options['offset']))  $query->offset(  $options['offset'] );
+		self::applyOptions($query, $options);
 		
 		$this->$prop = $className::query(
 			$query,
@@ -488,11 +490,8 @@ class Model extends Base {
 		$query->where("`$joint`.`$this->tableName` = ?", [$this->primaryKey]);
 		// run the query and get back a 2d array, set to the requested prop
 		
-		if (isset($options['where']))   $query->where(   $options['where']  );
-		if (isset($options['orderBy'])) $query->orderBy( $options['orderBy']);
-		if (isset($options['limit']))   $query->limit(   $options['limit']  );
-		if (isset($options['offset']))  $query->offset(  $options['offset'] );
-				
+		self::applyOptions($query, $options);
+		
 		$this->$prop = new ModelCollection(
 			$className::query(
 				$query,
