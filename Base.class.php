@@ -103,7 +103,7 @@ class Base extends Object {
 				// to avoid copying the pointers and getting the last result for all rows
 				foreach ($result as $key => $value) $row[$key] = $value;
 				if ($rowCallback) $row = $rowCallback($row); // the function to modify the row.
-				$return[] = $row;
+			    $return[] = $row;
 			}
 		}
 		

@@ -14,7 +14,6 @@ class ModelCollection extends Base implements \ArrayAccess, \Iterator {
 		$this->owner = $owner;
 	}
 	
-	
 	protected function addRelation($object) {
 		if ( !isset($this->owner) ) return false; // can't add without
 		$owner = $this->owner;
@@ -22,14 +21,15 @@ class ModelCollection extends Base implements \ArrayAccess, \Iterator {
 		$joint = static::tableJoin($owner->tableName, $object->tableName); // get the joint table
 		$query = new Query($joint);
 		$query->insert($joint, [
-				$owner->tableName => $owner->primaryKey,
-				$object->tableName => $object->primaryKey
+			$owner->tableName => $owner->primaryKey,
+			$object->tableName => $object->primaryKey
 		]);
 		
 		$key = static::query($query, $query->params);
 		$this->collection[] = $object; // append to the array...
 		return $key;
 	}
+	
 	protected function removeRelation($object) {
 		if ( !isset($this->owner) ) return false; // can't add without
 		$owner = $this->owner;
@@ -40,14 +40,36 @@ class ModelCollection extends Base implements \ArrayAccess, \Iterator {
 		static::query($query, $query->params);
 	}
 	
+	function findByName($column, $value) {
+	    $result = [];
+	    foreach($this->collection as $object) {
+	        if ($object->$column == $value)
+	        $result[] = $object;
+	    }
+	    return $result;
+	}
+	
 	// ================================
 	// = Array Access Implementation: =
 	// ================================
 	
-    function offsetSet    ($offset, $value) { $this->addRelation($value); }
-	function offsetUnset  ($offset) { $this->removeRelation($this->collection[$offset]); unset($this->collection[$offset]); }
-	function offsetExists ($offset) { return isset( $this->collection[$offset] ); }
-    function offsetGet    ($offset) { if    (isset( $this->collection[$offset] )) return $this->collection[$offset]; }
+    function offsetSet    ($offset, $value) {
+        $this->addRelation($value);
+    }
+    
+	function offsetUnset  ($offset) {
+	    $this->removeRelation($this->collection[$offset]);
+	    unset($this->collection[$offset]);
+	}
+	
+	function offsetExists ($offset) {
+	    return isset( $this->collection[$offset] );
+	}
+	
+    function offsetGet    ($offset) {
+        if (isset( $this->collection[$offset] ))
+            return $this->collection[$offset];
+    }
 	
 	// =======================
 	// = Iterator Interface: =

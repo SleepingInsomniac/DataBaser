@@ -449,26 +449,26 @@ class Model extends Base {
 	}
 	
 	protected function manyToMany($prop, $extraColumns = array()) {
+	    $options = [];
+	    
 		if (gettype(static::$manyToMany[$prop]) == 'array') {
 			$className = static::$manyToMany[$prop]['class'];
 			if (isset(static::$manyToMany[$prop]['options'])) {
-				
-				$options = static::$manyToMany[$prop]['options'];
-				
-				self::setDefaults($options, [
-					"direction" => [
-						'pattern' => "/ASC|DESC/i",
-						'value' => 'ASC'
-					],
-					"limit"  => ['pattern' => "/^\d+$/"],
-					"offset" => ['pattern' => "/^\d+$/"]
-				]);
-				
+				$options = static::$manyToMany[$prop]['options'];				
 			}
 		} else {
 			// get classname defined in the static $manyToMany (k/v) array
 			$className = static::$manyToMany[$prop];
 		}
+		
+		self::setDefaults($options, [
+			"direction" => [
+				'pattern' => "/ASC|DESC/i",
+				'value' => 'ASC'
+			],
+			"limit"  => ['pattern' => "/^\d+$/"],
+			"offset" => ['pattern' => "/^\d+$/"]
+		]);
 		
 		$foreignTable = $className::tableName();
 		// get the proper order of tables as per naming convention for join table.
