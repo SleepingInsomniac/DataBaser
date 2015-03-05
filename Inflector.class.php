@@ -21,6 +21,9 @@ class Inflector {
 		
 		"/([^aoieu])y$/i" => "$1ies",    // ends in y
 		"/(ss|sh|ch|dg)e?$/i" => "$1es", // ends in something requiring an es
+		"/ife$/i" => "ives",             // ends in ife
+		"/f$/i" => "ves",                // ends in f
+		"/sis$/i" => "ses",
 		"/(.)$/i" => "$1s"               // append s
 		
 	];
@@ -36,7 +39,10 @@ class Inflector {
 		"/people/i" => "person",
 		
 		"/ies$/i" => "y",              // convert ies to y
-		"/(ss|sh|ch|dg)es$/i" => "$1", // convert back
+		"/(ss|sh|ch|dg)es$/i" => "$1", // convert es back
+		"/ives$/i" => "ife",
+		"/ves$/i" => "f",
+		"/ses/i" => "sis",
 		"/s$/i" => ""                  // trim off trailling s
 		
 	];
